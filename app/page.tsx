@@ -1,11 +1,9 @@
-
 import Squares from "@/components/Squares";
-import Navbar from "@/components/navbar";
 
 export default function Home() {
   return (
-    <div className="w-full min-h-screen flex justify-center">
-      <div className="absolute inset-0 z-0 w-full h-screen">
+    <div className="relative w-full min-h-screen">
+      <div className="absolute inset-0 z-0 w-full h-full">
         <Squares
           speed={0.5}
           squareSize={40}
@@ -14,7 +12,6 @@ export default function Home() {
           hoverFillColor="#515151"
         />
       </div>
-      <Navbar/>
     </div>
   );
 }
