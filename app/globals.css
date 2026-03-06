@@ -121,6 +121,16 @@ body {
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
+@keyframes navbar-menu-drop {
+  from {
+    height: 0%;
+  }
+
+  to {
+    height: 100%
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

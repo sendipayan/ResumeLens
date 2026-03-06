@@ -13,7 +13,7 @@ export default function Navbar() {
 
   return (
     <GlassSurface
-      className="fixed inset-x-0 top-4 z-50 mx-auto h-[7vh] w-[90%] max-w-6xl rounded-full overflow-visible"
+      className="fixed inset-x-0 top-4 z-50 mx-auto h-[8vh] w-[90%]  rounded-full overflow-visible"
       displace={0.5}
       distortionScale={-180}
       redOffset={0}
@@ -23,7 +23,7 @@ export default function Navbar() {
       opacity={0.93}
       mixBlendMode="screen"
     >
-      <div className="flex w-[95%] items-center justify-between px-4 py-2 sm:px-6">
+      <div className="flex w-full items-center justify-between px-4 py-2 sm:px-6">
         <Link
           href="/"
           className="text-lg font-semibold tracking-wide text-gray-900 dark:text-gray-100"
@@ -33,13 +33,13 @@ export default function Navbar() {
 
         <div className="hidden md:flex  items-center gap-3">
           <nav className="flex items-center gap-2 sm:gap-3">
-            <Link href="#a1" className={navLinkClass}>
+            <Link href="/analyze" className={navLinkClass}>
               Analyze
             </Link>
-            <Link href="#a2" className={navLinkClass}>
+            <Link href="/jdmatch" className={navLinkClass}>
               JD matching
             </Link>
-            <Link href="#a3" className={navLinkClass}>
+            <Link href="/jobs" className={navLinkClass}>
               Jobs
             </Link>
           </nav>
@@ -61,8 +61,8 @@ export default function Navbar() {
             }`}
           />
           <span
-            className={`mt-1 block h-0.5 w-5 bg-current transition-opacity duration-200 ${
-              isMenuOpen ? "opacity-0" : "opacity-100"
+            className={`mt-1 block h-0.5 w-5 bg-current transition-opacity duration-400 ${
+              isMenuOpen ? "translate-x-100" : "translate-x-0"
             }`}
           />
           <span
@@ -75,24 +75,24 @@ export default function Navbar() {
 
       {isMenuOpen && (
         <div className="absolute top-[calc(100%+0.6rem)] left-1/2 w-[90%] -translate-x-1/2 md:hidden">
-          <div className="rounded-2xl border border-black/10 bg-white/95 p-3 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-black/95">
+          <div className="animate-[navbar-menu-drop_400ms_linear] rounded-2xl border border-black/10 bg-white p-3 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-black">
             <nav className="flex flex-col gap-1">
               <Link
-                href="#a1"
+                href="/analyze"
                 className={mobileNavLinkClass}
                 onClick={() => setIsMenuOpen(false)}
               >
                 Analyze
               </Link>
               <Link
-                href="#a2"
+                href="/jdmatch"
                 className={mobileNavLinkClass}
                 onClick={() => setIsMenuOpen(false)}
               >
                 JD matching
               </Link>
               <Link
-                href="#a3"
+                href="/jobs"
                 className={mobileNavLinkClass}
                 onClick={() => setIsMenuOpen(false)}
               >
