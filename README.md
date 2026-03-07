@@ -7,6 +7,10 @@ ResumeLens is a Next.js app for resume analysis and job-fit workflows. It provid
 - Curated job search links based on role
 - A modern landing page with light and dark UI variants
 
+## Landing Page Preview
+
+![ResumeLens Landing Page](public/landing_page.png)
+
 ## Tech Stack
 
 - Next.js 16 (App Router)
@@ -30,9 +34,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## Landing Page Preview
 
-![ResumeLens Landing Page](public/landing_page.png)
 
 ## Routes
 
