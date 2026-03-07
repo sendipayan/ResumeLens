@@ -17,7 +17,12 @@ type Recommendation = {
   Responsibilities: string[];
   primary_skill: SkillCoverage;
   secondry_skill: SkillCoverage;
-  project: { score: number };
+  project: {
+    semantic_score: number;
+    skills: string[];
+    missing: string[];
+    match_score: number;
+  };
   experience: { score: number };
   achievment: {
     final_score: number;
@@ -52,7 +57,7 @@ const SAMPLE_RECOMMENDATION_RESPONSE: RecommendationResponse = {
   recommendations: [
     {
       Title: "Software Developer - Entry Level",
-      score: 89,
+      score: 63.106441497802734,
       Responsibilities: [
         "Contribute to software development projects",
         "Write clean code in Java, Python, or C++",
@@ -75,8 +80,20 @@ const SAMPLE_RECOMMENDATION_RESPONSE: RecommendationResponse = {
         matched: ["HTML", "CSS", "Git"],
         missing_skills: ["problemsolving", "collaboration"],
       },
-      project: { score: 90 },
-      experience: { score: 85 },
+      project: {
+        semantic_score: 42.67176818847656,
+        skills: ["Collaboration", "Git", "CSS", "HTML"],
+        missing: [
+          "C++",
+          "SQL",
+          "Java",
+          "Python",
+          "JavaScript",
+          "Problem-solving",
+        ],
+        match_score: 40.0,
+      },
+      experience: { score: 0 },
       achievment: {
         final_score: 49.59000015258789,
         semantic_impact: 50.84000015258789,
@@ -86,11 +103,11 @@ const SAMPLE_RECOMMENDATION_RESPONSE: RecommendationResponse = {
         comp_bonus: 0,
         quant_bonus: 25,
       },
-      certificates: { final_score: 75 },
+      certificates: { final_score: 0 },
     },
     {
       Title: "Full Stack Developer - Entry Level",
-      score: 48.710227966308594,
+      score: 56.210227966308594,
       Responsibilities: [
         "Develop end-to-end web applications",
         "Write clean code in JavaScript and Python",
@@ -113,7 +130,22 @@ const SAMPLE_RECOMMENDATION_RESPONSE: RecommendationResponse = {
         matched: ["HTML", "CSS", "Git"],
         missing_skills: [],
       },
-      project: { score: 50.75090026855469 },
+      project: {
+        semantic_score: 50.75090026855469,
+        skills: ["NoSQL", "Git", "CSS3"],
+        missing: [
+          "React",
+          "Flask)",
+          "Python (Django",
+          "SQL",
+          "Node.js",
+          "Angular",
+          "JavaScript (ES6+)",
+          "Vue.js",
+          "HTML5",
+        ],
+        match_score: 25.0,
+      },
       experience: { score: 0 },
       achievment: {
         final_score: 52.150001525878906,
@@ -127,8 +159,58 @@ const SAMPLE_RECOMMENDATION_RESPONSE: RecommendationResponse = {
       certificates: { final_score: 0 },
     },
     {
+      Title: "Frontend Developer - Entry Level",
+      score: 53.54189682006836,
+      Responsibilities: [
+        "Build responsive and interactive web pages",
+        "Implement UI designs",
+        "Assist in basic testing and debugging",
+        "Integrate frontend with backend APIs",
+        "Participate in code reviews",
+        "Collaborate with team members",
+      ],
+      primary_skill: {
+        coverage_score: 40.0,
+        matched_count: 2,
+        total_role_skills: 5,
+        matched: ["Javascript", "ReactJs"],
+        missing_skills: ["vuejs", "angular", "tailwindcss"],
+      },
+      secondry_skill: {
+        coverage_score: 60.0,
+        matched_count: 3,
+        total_role_skills: 5,
+        matched: ["HTML", "CSS", "Git"],
+        missing_skills: ["bootstrap", "browserdevelopertools"],
+      },
+      project: {
+        semantic_score: 50.54759216308594,
+        skills: ["Tailwind CSS", "Git", "CSS", "HTML"],
+        missing: [
+          "React",
+          "Vue.js",
+          "JavaScript",
+          "Angular",
+          "Bootstrap",
+          "Browser Developer Tools",
+        ],
+        match_score: 40.0,
+      },
+      experience: { score: 0 },
+      achievment: {
+        final_score: 52.70000076293945,
+        semantic_impact: 50.84000015258789,
+        relevance: 49.400001525878906,
+        leadership: 57.650001525878906,
+        prestige: 26.489999771118164,
+        comp_bonus: 0,
+        quant_bonus: 25,
+      },
+      certificates: { final_score: 0 },
+    },
+    {
       Title: "Web Developer",
-      score: 45.2536506652832,
+      score: 52.75364685058594,
       Responsibilities: [
         "Assist in front-end development tasks",
         "Write basic HTML, CSS, and JavaScript code",
@@ -152,7 +234,25 @@ const SAMPLE_RECOMMENDATION_RESPONSE: RecommendationResponse = {
         matched: ["HTML", "CSS", "Git", "Github"],
         missing_skills: ["ux", "php", "responsivedesign", "ui"],
       },
-      project: { score: 46.170597076416016 },
+      project: {
+        semantic_score: 46.170597076416016,
+        skills: ["MongoDB", "CSS3", "Git", "GitHub"],
+        missing: [
+          "React",
+          "MySQL",
+          "RESTful APIs",
+          "Angular",
+          "Node.js",
+          "JavaScript",
+          "AJAX",
+          "UX",
+          "PHP",
+          "Responsive Design",
+          "HTML5",
+          "UI",
+        ],
+        match_score: 25.0,
+      },
       experience: { score: 0 },
       achievment: {
         final_score: 50.7400016784668,
@@ -166,46 +266,8 @@ const SAMPLE_RECOMMENDATION_RESPONSE: RecommendationResponse = {
       certificates: { final_score: 0 },
     },
     {
-      Title: "Frontend Developer - Entry Level",
-      score: 41.54189682006836,
-      Responsibilities: [
-        "Build responsive and interactive web pages",
-        "Implement UI designs",
-        "Assist in basic testing and debugging",
-        "Integrate frontend with backend APIs",
-        "Participate in code reviews",
-        "Collaborate with team members",
-      ],
-      primary_skill: {
-        coverage_score: 40.0,
-        matched_count: 2,
-        total_role_skills: 5,
-        matched: ["Javascript", "ReactJs"],
-        missing_skills: ["vuejs", "angular", "tailwindcss"],
-      },
-      secondry_skill: {
-        coverage_score: 60.0,
-        matched_count: 3,
-        total_role_skills: 5,
-        matched: ["HTML", "CSS", "Git"],
-        missing_skills: ["bootstrap", "browserdevelopertools"],
-      },
-      project: { score: 50.54759216308594 },
-      experience: { score: 0 },
-      achievment: {
-        final_score: 52.70000076293945,
-        semantic_impact: 50.84000015258789,
-        relevance: 49.400001525878906,
-        leadership: 57.650001525878906,
-        prestige: 26.489999771118164,
-        comp_bonus: 0,
-        quant_bonus: 25,
-      },
-      certificates: { final_score: 0 },
-    },
-    {
       Title: "Backend Developer - Entry Level",
-      score: 41.530433654785156,
+      score: 50.761207580566406,
       Responsibilities: [
         "Assist in building server-side applications",
         "Develop RESTful APIs",
@@ -227,7 +289,22 @@ const SAMPLE_RECOMMENDATION_RESPONSE: RecommendationResponse = {
         matched: ["Git"],
         missing_skills: ["redis", "graphql"],
       },
-      project: { score: 54.14373779296875 },
+      project: {
+        semantic_score: 54.14373779296875,
+        skills: ["MongoDB", "PostgreSQL", "Git", "MySQL"],
+        missing: [
+          "Express.js",
+          "RESTful API",
+          "Django",
+          "Java",
+          "Python",
+          "Flask",
+          "Node.js",
+          "Redis",
+          "GraphQL",
+        ],
+        match_score: 30.76923076923077,
+      },
       experience: { score: 0 },
       achievment: {
         final_score: 53.630001068115234,
@@ -357,7 +434,7 @@ export default function AnalyzePage() {
           label: "Secondary Skill Coverage",
           value: activeRecommendation.secondry_skill.coverage_score,
         },
-        { label: "Projects", value: activeRecommendation.project.score },
+        { label: "Projects", value: activeRecommendation.project.match_score },
         { label: "Experience", value: activeRecommendation.experience.score },
         {
           label: "Achievement",
@@ -456,16 +533,12 @@ export default function AnalyzePage() {
             </button>
 
             {analysis && (
-              <button
-                type="button"
-                className="mt-5 w-full rounded-full cursor-pointer border border-foreground bg-background px-5 py-2.5 text-sm font-semibold text-foreground transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
-            
+              <Link
+                href="/jobs"
+                className="mt-5 block w-full rounded-full border border-foreground bg-background px-5 py-2.5 text-center text-sm font-semibold text-foreground transition-opacity hover:opacity-80"
               >
-                <Link href="/jobs">
                 View Related Jobs
-                </Link>
-                
-              </button>
+              </Link>
             )}
 
             {errorMessage && (
@@ -768,21 +841,63 @@ export default function AnalyzePage() {
                         </div>
                       </div>
 
-                      <div className="mt-4 bg-background/55 flex lg:flex-row flex-col items-center justify-between">
-                        <div className="h-full lg:w-[50%] w-full flex flex-col items-start p-3 border border-border">
+                      <div className="mt-4 bg-background/55 flex flex-col items-stretch justify-between gap-3 lg:flex-row">
+                        <div className="h-full w-full border border-border p-3 lg:w-[50%]">
                           <p className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/60">
                             Project Feedback
                           </p>
-                          <p className="text-xs mt-2 font-light  tracking-[0.15em] text-foreground/60">
-                            Write the project that better alligns with the Resposibilities
+                          <p className="mt-2 text-xs text-foreground/80">
+                            Semantic Score:{" "}
+                            {formatScore(
+                              activeRecommendation.project.semantic_score,
+                            )}
+                            %
                           </p>
+                          <p className="mt-1 text-xs text-foreground/80">
+                            Match Score:{" "}
+                            {formatScore(activeRecommendation.project.match_score)}
+                            %
+                          </p>
+                          <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.15em] text-foreground/60">
+                            Project Skills
+                          </p>
+                          <div className="mt-1 flex flex-wrap gap-2">
+                            {activeRecommendation.project.skills.map((skill) => (
+                              <span
+                                key={`project-skill-${skill}`}
+                                className="border border-border bg-background/70 px-2 py-1 text-xs text-foreground"
+                              >
+                                {skill}
+                              </span>
+                            ))}
+                          </div>
+                          <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.15em] text-foreground/60">
+                            Missing In Projects
+                          </p>
+                          <div className="mt-1 flex flex-wrap gap-2">
+                            {activeRecommendation.project.missing.map(
+                              (skill, index) => (
+                                <span
+                                  key={`project-missing-${skill}-${index}`}
+                                  className="border border-border bg-background/40 px-2 py-1 text-xs text-foreground/70"
+                                >
+                                  {skill}
+                                </span>
+                              ),
+                            )}
+                          </div>
                         </div>
-                        <div className="h-full lg:w-[50%] w-full flex flex-col items-start p-3 border border-border">
+                        <div className="h-full w-full border border-border p-3 lg:w-[50%]">
                           <p className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/60">
-                            Experience feedback 
+                            Experience Feedback
                           </p>
-                          <p className="text-xs mt-2 font-light  tracking-[0.15em] text-foreground/60">
-                            Write the Work Experience that better alligns with the Resposibilities
+                          <p className="mt-2 text-xs text-foreground/80">
+                            Experience Score:{" "}
+                            {formatScore(activeRecommendation.experience.score)}%
+                          </p>
+                          <p className="mt-2 text-xs text-foreground/70">
+                            Add quantified impact and role-specific work examples
+                            to improve this section.
                           </p>
                         </div>
                       </div>

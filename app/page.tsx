@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import CardSwap, { Card } from "@/components/CardSwap";
 
 export default function Home() {
@@ -9,19 +10,22 @@ export default function Home() {
           <h1 className="text-4xl font-bold  leading-tight text-foreground sm:text-5xl lg:text-6xl">
             ResumeLens helps you turn resumes into interview-ready decisions.
           </h1>
-
           <p className="mt-6 text-base leading-relaxed text-foreground/80 sm:text-lg">
             Analyze resume quality, match candidates against job descriptions,
             and surface the strongest profiles faster with structured scoring.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <button className="rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background transition-colors hover:opacity-90">
+            <Link className="rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background transition-colors hover:opacity-90"
+              href="/analyze"
+            >
               Start Analysis
-            </button>
-            <button className="rounded-full border border-border bg-background/70 px-5 py-2.5 text-sm font-semibold text-foreground backdrop-blur-sm transition-colors hover:bg-background/90">
+            </Link>
+            <Link className="rounded-full border border-border bg-background/70 px-5 py-2.5 text-sm font-semibold text-foreground backdrop-blur-sm transition-colors hover:bg-background/90"
+              href="/jobs"
+            >
               View Jobs
-            </button>
+            </Link>
           </div>
 
           <div className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -98,18 +102,16 @@ export default function Home() {
                 <Image
                   src="/card1.png"
                   alt="Resume analysis preview"
-                  objectFit="cover"
                   height={1200}
                   width={700}
-                  className="h-full w-full block dark:hidden"
+                  className="h-full w-full object-fit block dark:hidden"
                 />
                  <Image
                   src="/card1_dark.png"
                   alt="Resume analysis preview"
-                  objectFit="cover"
                   height={1200}
                   width={700}
-                  className="h-full w-full hidden dark:block"
+                  className="h-full w-full object-fit hidden dark:block"
                 />
               </div>
             </Card>
@@ -121,18 +123,16 @@ export default function Home() {
                 <Image
                   src="/card2.png"
                   alt="Resume analysis preview"
-                  objectFit="cover"
                   height={1200}
                   width={700}
-                  className="h-full w-full block dark:hidden"
+                  className="h-full w-full object-fit block dark:hidden"
                 />
                  <Image
                   src="/card2_dark.png"
                   alt="Resume analysis preview"
-                  objectFit="cover"
                   height={1200}
                   width={700}
-                  className="h-full w-full hidden dark:block"
+                  className="h-full w-full object-fit hidden dark:block"
                 />
               </div>
             </Card>
@@ -144,18 +144,16 @@ export default function Home() {
                 <Image
                   src="/card3.png"
                   alt="Resume analysis preview"
-                  objectFit="cover"
                   height={1200}
                   width={700}
-                  className="h-full w-full block dark:hidden"
+                  className="h-full w-full object-fit block dark:hidden"
                 />
                  <Image
                   src="/card3_dark.png"
                   alt="Resume analysis preview"
-                  objectFit="cover"
                   height={1200}
                   width={700}
-                  className="h-full w-full hidden dark:block"
+                  className="h-full w-full object-fit hidden dark:block"
                 />
               </div>
             </Card>
@@ -174,7 +172,7 @@ export default function Home() {
             Reach out and we will help you set up ResumeLens for your
             job-search or hiring workflow.
           </p>
-
+ 
           <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="border border-border bg-background/70 p-4">
               <p className="text-xs uppercase tracking-[0.15em] text-foreground/60">

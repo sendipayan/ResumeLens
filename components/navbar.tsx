@@ -78,6 +78,13 @@ export default function Navbar() {
           <div className="animate-[navbar-menu-drop_400ms_linear] rounded-2xl border border-black/10 bg-white p-3 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-black">
             <nav className="flex flex-col gap-1">
               <Link
+                href="/"
+                className={mobileNavLinkClass}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Home
+              </Link>
+              <Link
                 href="/analyze"
                 className={mobileNavLinkClass}
                 onClick={() => setIsMenuOpen(false)}
