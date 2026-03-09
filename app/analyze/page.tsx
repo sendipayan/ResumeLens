@@ -1,7 +1,9 @@
 "use client";
 
-import { ChangeEvent, DragEvent, useState } from "react";
+import { ChangeEvent, DragEvent, useRef, useState } from "react";
 import Link from "next/link";
+import { uploadResumeWithCloudinary } from "@/app/actions/upload-resume";
+import { type UploadedResume } from "@/lib/resume-upload";
 
 type SkillCoverage = {
   coverage_score: number;
@@ -341,13 +343,18 @@ export default function AnalyzePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [targetRole] = useState<string>(TARGET_ROLE_OPTIONS[0]);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
+  const [uploadedResume, setUploadedResume] = useState<UploadedResume | null>(
+    null,
+  );
   const [selectedRecommendationTitle, setSelectedRecommendationTitle] =
     useState<string>("");
   const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const activeUploadIdRef = useRef(0);
 
-  const handleNewFile = (file: File | null) => {
+  const handleNewFile = async (file: File | null) => {
     if (!file) return;
 
     if (!isPdf(file)) {
@@ -359,32 +366,74 @@ export default function AnalyzePage() {
 
     setErrorMessage(null);
     setAnalysis(null);
+    setUploadedResume(null);
     setSelectedRecommendationTitle("");
     setSelectedFile(file);
+
+    const uploadId = activeUploadIdRef.current + 1;
+    activeUploadIdRef.current = uploadId;
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("source", "analyze");
+
+      const uploadResponse = await uploadResumeWithCloudinary(formData);
+      if (!uploadResponse.success) {
+        throw new Error(uploadResponse.error);
+      }
+
+      if (activeUploadIdRef.current !== uploadId) return;
+      setUploadedResume(uploadResponse.upload);
+    } catch (error) {
+      if (activeUploadIdRef.current !== uploadId) return;
+      setSelectedFile(null);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Failed to upload resume to Cloudinary.",
+      );
+    } finally {
+      if (activeUploadIdRef.current !== uploadId) return;
+      setIsUploading(false);
+    }
   };
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    handleNewFile(event.target.files?.[0] ?? null);
+    void handleNewFile(event.target.files?.[0] ?? null);
     event.target.value = "";
   };
 
   const handleDrop = (event: DragEvent<HTMLLabelElement>) => {
     event.preventDefault();
     setIsDragging(false);
-    handleNewFile(event.dataTransfer.files?.[0] ?? null);
+    void handleNewFile(event.dataTransfer.files?.[0] ?? null);
   };
 
   const clearSelectedFile = () => {
+    activeUploadIdRef.current += 1;
     setSelectedFile(null);
     setAnalysis(null);
+    setUploadedResume(null);
     setSelectedRecommendationTitle("");
     setErrorMessage(null);
+    setIsUploading(false);
     setIsDragging(false);
   };
 
   const runAnalysis = () => {
     if (!selectedFile) {
       setErrorMessage("Upload a resume PDF first to generate recommendations.");
+      return;
+    }
+
+    if (isUploading) {
+      setErrorMessage("Your resume is still uploading to Cloudinary.");
+      return;
+    }
+
+    if (!uploadedResume) {
+      setErrorMessage("Resume upload failed. Please upload the PDF again.");
       return;
     }
 
@@ -520,16 +569,29 @@ export default function AnalyzePage() {
                     {formatFileSize(selectedFile.size)}
                   </p>
                 </div>
+                {isUploading ? (
+                  <p className="mt-2 text-xs text-foreground/70">
+                    Uploading resume to Cloudinary...
+                  </p>
+                ) : uploadedResume ? (
+                  <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
+                    Stored in Cloudinary.
+                  </p>
+                ) : null}
               </div>
             )}
 
             <button
               type="button"
               onClick={runAnalysis}
-              disabled={!selectedFile || isAnalyzing}
+              disabled={!selectedFile || !uploadedResume || isUploading || isAnalyzing}
               className="mt-5 w-full rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isAnalyzing ? "Analyzing Resume..." : "Generate Insights"}
+              {isUploading
+                ? "Uploading Resume..."
+                : isAnalyzing
+                  ? "Analyzing Resume..."
+                  : "Generate Insights"}
             </button>
 
             {analysis && (
