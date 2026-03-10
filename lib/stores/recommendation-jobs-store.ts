@@ -53,6 +53,7 @@ export type StoredRecommendation = {
   Title: string;
   score: number;
   Responsibilities?: string[] | null;
+  missing_sections?: string[] | null;
   primary_skill?: StoredSkillCoverage;
   secondry_skill?: StoredSkillCoverage;
   projects?: StoredProjectFeedback;
@@ -67,11 +68,15 @@ type RecommendationJobsState = {
   recommendations: StoredRecommendation[];
   jobs: JobRecommendation[];
   jdMatchRecommendation: StoredRecommendation | null;
+  analyzeMissingSections: string[];
+  jdMatchMissingSections: string[];
   setRecommendationJobs: (payload: {
     recommendations: StoredRecommendation[];
     jobs: JobRecommendation[];
+    missingSections?: string[];
   }) => void;
   setJDMatchRecommendation: (recommendation: StoredRecommendation | null) => void;
+  setJDMatchMissingSections: (sections: string[]) => void;
   clearRecommendationJobs: () => void;
 };
 
@@ -80,13 +85,19 @@ export const useRecommendationJobsStore = create<RecommendationJobsState>(
     recommendations: [],
     jobs: [],
     jdMatchRecommendation: null,
+    analyzeMissingSections: [],
+    jdMatchMissingSections: [],
     setRecommendationJobs: (payload) =>
       set({
         recommendations: payload.recommendations,
         jobs: payload.jobs,
+        analyzeMissingSections: payload.missingSections ?? [],
       }),
     setJDMatchRecommendation: (recommendation) =>
       set({ jdMatchRecommendation: recommendation }),
-    clearRecommendationJobs: () => set({ recommendations: [], jobs: [] }),
+    setJDMatchMissingSections: (sections) =>
+      set({ jdMatchMissingSections: sections }),
+    clearRecommendationJobs: () =>
+      set({ recommendations: [], jobs: [], analyzeMissingSections: [] }),
   }),
 );

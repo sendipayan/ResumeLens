@@ -27,6 +27,7 @@ type NormalizedProjectFeedback = {
   skills: string[];
   missing: string[];
   match_score: number;
+  final_score: number;
 };
 
 type NormalizedAchievement = {
@@ -44,6 +45,7 @@ type RecommendationResponse = {
   jobs?: unknown;
   job_recommendations?: unknown;
   jobRecommendations?: unknown;
+  missing_sections?: unknown;
 };
 
 type AnalysisResult = {
@@ -86,6 +88,7 @@ const normalizeProjectFeedback = (
   skills: toStringArray(project?.skills),
   missing: toStringArray(project?.missing),
   match_score: toNumber(project?.match_score),
+  final_score: toNumber(project?.final_score),
 });
 
 const normalizeAchievement = (
@@ -99,6 +102,38 @@ const normalizeAchievement = (
   comp_bonus: toNumber(achievement?.comp_bonus),
   quant_bonus: toNumber(achievement?.quant_bonus),
 });
+
+const resumeDesignTips = [
+  {
+    title: "Keep a clear hierarchy",
+    description:
+      "Use consistent headings, spacing, and bolding so recruiters can scan in seconds.",
+  },
+  {
+    title: "Quantify impact",
+    description:
+      "Add metrics like percentages, revenue, time saved, or scale to each major bullet.",
+  },
+  {
+    title: "Tailor for the role",
+    description:
+      "Mirror keywords from the job description in your skills and experience.",
+  },
+  {
+    title: "Stay ATS-friendly",
+    description: "Avoid tables, text boxes, and images that can break parsing.",
+  },
+  {
+    title: "Lead with recent work",
+    description:
+      "Put the most recent, relevant experience first; keep older roles shorter.",
+  },
+  {
+    title: "Keep bullets crisp",
+    description:
+      "Aim for 1-2 lines per bullet with action verbs and clear outcomes.",
+  },
+];
 
 const normalizeJobRecommendations = (
   payload: RecommendationResponse,
@@ -120,8 +155,7 @@ const normalizeJobRecommendations = (
         links?: unknown;
       };
       const titleSource = raw.title ?? raw.Title ?? raw.tittle;
-      const title =
-        typeof titleSource === "string" ? titleSource.trim() : "";
+      const title = typeof titleSource === "string" ? titleSource.trim() : "";
       if (!title) return null;
 
       const normalizedLinks = {
@@ -175,9 +209,9 @@ const isPdf = (file: File) =>
   file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
 
 const formatFileSize = (bytes: number) => {
-  if (bytes < 5*1024) return `${bytes} B`;
-  if (bytes < 5* 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (5* 1024 * 1024)).toFixed(2)} MB`;
+  if (bytes < 5 * 1024) return `${bytes} B`;
+  if (bytes < 5 * 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (5 * 1024 * 1024)).toFixed(2)} MB`;
 };
 
 const formatScore = (score: number) => score.toFixed(2);
@@ -203,6 +237,9 @@ export default function AnalyzePage() {
   const activeUploadIdRef = useRef(0);
   const storedRecommendations = useRecommendationJobsStore(
     (state) => state.recommendations,
+  );
+  const storedMissingSections = useRecommendationJobsStore(
+    (state) => state.analyzeMissingSections,
   );
   const setRecommendationJobs = useRecommendationJobsStore(
     (state) => state.setRecommendationJobs,
@@ -318,10 +355,11 @@ export default function AnalyzePage() {
       const response = await axios.post<RecommendationResponse>(SCORE_API_URL, {
         resume_url: uploadedResume.secureUrl,
       });
-      console.log(response)
+      console.log(response);
       const rankedRecommendations = [...(response.data.recommendations ?? [])]
         .filter((item) => item?.Title)
         .sort((a, b) => toNumber(b.score) - toNumber(a.score));
+      const missingSections = toStringArray(response.data.missing_sections);
 
       if (rankedRecommendations.length === 0) {
         throw new Error(
@@ -336,6 +374,7 @@ export default function AnalyzePage() {
       setRecommendationJobs({
         recommendations: rankedRecommendations,
         jobs: normalizeJobRecommendations(response.data),
+        missingSections,
       });
       setSelectedRecommendationTitle(rankedRecommendations[0]?.Title ?? "");
     } catch (error) {
@@ -350,7 +389,7 @@ export default function AnalyzePage() {
         const message =
           typeof apiError === "string"
             ? apiError
-            : apiError?.detail ?? apiError?.error ?? apiError?.message;
+            : (apiError?.detail ?? apiError?.error ?? apiError?.message);
         setErrorMessage(
           message?.trim() || "Failed to fetch recommendations from /score.",
         );
@@ -395,7 +434,16 @@ export default function AnalyzePage() {
     activeRecommendation?.Responsibilities ??
       activeRecommendation?.["responsibilities"],
   );
-  const activeExperienceScore = toNumber(activeRecommendation?.experience?.score);
+  const activeMissingSections =
+    storedMissingSections.length > 0
+      ? storedMissingSections
+      : toStringArray(
+          activeRecommendation?.missing_sections ??
+            activeRecommendation?.["missingSections"],
+        );
+  const activeExperienceScore = toNumber(
+    activeRecommendation?.experience?.score,
+  );
   const activeCertificatesScore = toNumber(
     activeRecommendation?.certificates?.final_score ??
       (activeRecommendation?.["certificate"] as { final_score?: number | null })
@@ -514,7 +562,9 @@ export default function AnalyzePage() {
             <button
               type="button"
               onClick={() => void runAnalysis()}
-              disabled={!selectedFile || !uploadedResume || isUploading || isAnalyzing}
+              disabled={
+                !selectedFile || !uploadedResume || isUploading || isAnalyzing
+              }
               className="mt-5 w-full rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isUploading
@@ -650,13 +700,11 @@ export default function AnalyzePage() {
                         </span>
                         . Primary skill coverage is{" "}
                         <span className="font-semibold">
-                          {formatScore(activePrimarySkill.coverage_score)}
-                          %
+                          {formatScore(activePrimarySkill.coverage_score)}%
                         </span>{" "}
                         and secondary skill coverage is{" "}
                         <span className="font-semibold">
-                          {formatScore(activeSecondarySkill.coverage_score)}
-                          %
+                          {formatScore(activeSecondarySkill.coverage_score)}%
                         </span>
                         .
                       </p>
@@ -682,6 +730,32 @@ export default function AnalyzePage() {
                           </li>
                         )}
                       </ul>
+                    </div>
+
+                    <div className="border border-border bg-background/70 p-4">
+                      <p className="text-sm font-semibold text-foreground">
+                        Missing Sections
+                      </p>
+                      <p className="mt-2 text-xs text-foreground/70">
+                        Sections expected for this role but not found in the
+                        resume.
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {activeMissingSections.length > 0 ? (
+                          activeMissingSections.map((section) => (
+                            <span
+                              key={section}
+                              className="border border-border bg-background/55 px-2 py-1 text-xs text-foreground/80"
+                            >
+                              {section}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-foreground/70">
+                            No missing sections detected.
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="border border-border bg-background/70 p-4">
@@ -801,100 +875,119 @@ export default function AnalyzePage() {
                         <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-foreground/80 sm:grid-cols-4">
                           <p>
                             Semantic:{" "}
-                            {formatScore(activeAchievement.semantic_impact)}
-                            %
+                            {formatScore(activeAchievement.semantic_impact)}%
                           </p>
                           <p>
                             Relevance:{" "}
-                            {formatScore(activeAchievement.relevance)}
-                            %
+                            {formatScore(activeAchievement.relevance)}%
                           </p>
                           <p>
                             Leadership:{" "}
-                            {formatScore(activeAchievement.leadership)}
-                            %
+                            {formatScore(activeAchievement.leadership)}%
                           </p>
                           <p>
-                            Prestige:{" "}
-                            {formatScore(activeAchievement.prestige)}
-                            %
+                            Prestige: {formatScore(activeAchievement.prestige)}%
                           </p>
                           <p>
                             Comp Bonus:{" "}
-                            {formatScore(activeAchievement.comp_bonus)}
-                            %
+                            {formatScore(activeAchievement.comp_bonus)}%
                           </p>
                           <p>
                             Quant Bonus:{" "}
-                            {formatScore(activeAchievement.quant_bonus)}
-                            %
+                            {formatScore(activeAchievement.quant_bonus)}%
                           </p>
                         </div>
                       </div>
 
-                      
-                        <div className="w-full border border-border p-3 ">
-                          <p className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/60">
-                            Project Feedback
+                      <div className="w-full border border-border p-3 ">
+                        <p className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/60">
+                          Project Feedback
+                        </p>
+                        <div className="w-full lg:pr-10 flex flex-col md:flex-row items-start md:items-center justify-between">
+                          <p className="mt-1 text-xs text-foreground/80">
+                            Final Score:{" "}
+                            {formatScore(activeProject.final_score)}%
                           </p>
                           <p className="mt-2 text-xs text-foreground/80">
                             Semantic Score:{" "}
-                            {formatScore(activeProject.semantic_score)}
-                            %
+                            {formatScore(activeProject.semantic_score)}%
                           </p>
+                          
                           <p className="mt-1 text-xs text-foreground/80">
                             Match Score:{" "}
-                            {formatScore(activeProject.match_score)}
-                            %
-                          </p>
-                          <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.15em] text-foreground/60">
-                            Project Skills
-                          </p>
-                          <div className="mt-1 flex flex-wrap gap-2">
-                            {activeProject.skills.map((skill) => (
-                              <span
-                                key={`project-skill-${skill}`}
-                                className="border border-border bg-background/70 px-2 py-1 text-xs text-foreground"
-                              >
-                                {skill}
-                              </span>
-                            ))}
-                          </div>
-                          <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.15em] text-foreground/60">
-                            Missing In Projects
-                          </p>
-                          <div className="mt-1 flex flex-wrap gap-2">
-                            {activeProject.missing.map(
-                              (skill, index) => (
-                                <span
-                                  key={`project-missing-${skill}-${index}`}
-                                  className="border border-border bg-background/40 px-2 py-1 text-xs text-foreground/70"
-                                >
-                                  {skill}
-                                </span>
-                              ),
-                            )}
-                          </div>
-                        </div>
-                        <div className="w-full border border-border p-3 ">
-                          <p className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/60">
-                            Experience Feedback
-                          </p>
-                          <p className="mt-2 text-xs text-foreground/80">
-                            Experience Score:{" "}
-                            {formatScore(activeExperienceScore)}%
-                          </p>
-                          <p className="mt-2 text-xs text-foreground/70">
-                            Add quantified impact and role-specific work examples
-                            to improve this section.
+                            {formatScore(activeProject.match_score)}%
                           </p>
                         </div>
-                      
+
+                        <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.15em] text-foreground/60">
+                          Project Skills
+                        </p>
+                        <div className="mt-1 flex flex-wrap gap-2">
+                          {activeProject.skills.map((skill) => (
+                            <span
+                              key={`project-skill-${skill}`}
+                              className="border border-border bg-background/70 px-2 py-1 text-xs text-foreground"
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                        <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.15em] text-foreground/60">
+                          Missing In Projects
+                        </p>
+                        <div className="mt-1 flex flex-wrap gap-2">
+                          {activeProject.missing.map((skill, index) => (
+                            <span
+                              key={`project-missing-${skill}-${index}`}
+                              className="border border-border bg-background/40 px-2 py-1 text-xs text-foreground/70"
+                            >
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="w-full border border-border p-3 ">
+                        <p className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/60">
+                          Experience Feedback
+                        </p>
+                        <p className="mt-2 text-xs text-foreground/80">
+                          Experience Score: {formatScore(activeExperienceScore)}
+                          %
+                        </p>
+                        <p className="mt-2 text-xs text-foreground/70">
+                          Add quantified impact and role-specific work examples
+                          to improve this section.
+                        </p>
+                      </div>
                     </div>
                   </>
                 )}
               </div>
             )}
+          </div>
+        </div>
+
+        <div className="mt-6 border border-border bg-background/65 p-5 backdrop-blur-sm sm:p-6">
+          <h2 className="text-lg font-semibold text-foreground sm:text-xl">
+            Resume Design Tips
+          </h2>
+          <p className="mt-2 text-sm text-foreground/70">
+            Quick wins to improve clarity, ATS parsing, and recruiter scanning.
+          </p>
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {resumeDesignTips.map((tip) => (
+              <div
+                key={tip.title}
+                className="border border-border bg-background/55 p-3"
+              >
+                <p className="text-sm font-semibold text-foreground">
+                  {tip.title}
+                </p>
+                <p className="mt-2 text-xs text-foreground/70">
+                  {tip.description}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
