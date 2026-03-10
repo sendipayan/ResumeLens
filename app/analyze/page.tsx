@@ -1,11 +1,20 @@
 "use client";
 
+import axios from "axios";
 import { ChangeEvent, DragEvent, useRef, useState } from "react";
 import Link from "next/link";
 import { uploadResumeWithCloudinary } from "@/app/actions/upload-resume";
 import { type UploadedResume } from "@/lib/resume-upload";
+import {
+  type JobRecommendation,
+  type StoredAchievement,
+  type StoredProjectFeedback,
+  type StoredRecommendation,
+  type StoredSkillCoverage,
+  useRecommendationJobsStore,
+} from "@/lib/stores/recommendation-jobs-store";
 
-type SkillCoverage = {
+type NormalizedSkillCoverage = {
   coverage_score: number;
   matched_count: number;
   total_role_skills: number;
@@ -13,322 +22,162 @@ type SkillCoverage = {
   missing_skills: string[];
 };
 
-type Recommendation = {
-  Title: string;
-  score: number;
-  Responsibilities: string[];
-  primary_skill: SkillCoverage;
-  secondry_skill: SkillCoverage;
-  project: {
-    semantic_score: number;
-    skills: string[];
-    missing: string[];
-    match_score: number;
-  };
-  experience: { score: number };
-  achievment: {
-    final_score: number;
-    semantic_impact: number;
-    relevance: number;
-    leadership: number;
-    prestige: number;
-    comp_bonus: number;
-    quant_bonus: number;
-  };
-  certificates: { final_score: number };
+type NormalizedProjectFeedback = {
+  semantic_score: number;
+  skills: string[];
+  missing: string[];
+  match_score: number;
+};
+
+type NormalizedAchievement = {
+  final_score: number;
+  semantic_impact: number;
+  relevance: number;
+  leadership: number;
+  prestige: number;
+  comp_bonus: number;
+  quant_bonus: number;
 };
 
 type RecommendationResponse = {
-  recommendations: Recommendation[];
+  recommendations: StoredRecommendation[];
+  jobs?: unknown;
+  job_recommendations?: unknown;
+  jobRecommendations?: unknown;
 };
 
 type AnalysisResult = {
-  recommendations: Recommendation[];
+  recommendations: StoredRecommendation[];
   analyzedAt: string;
 };
 
-const TARGET_ROLE_OPTIONS = [
-  "Software Developer",
-  "Full Stack Developer",
-  "Web Developer",
-  "Frontend Developer",
-  "Backend Developer",
-];
+const SCORE_API_URL = "http://localhost:8000/score";
+type ScoreErrorPayload = {
+  detail?: string;
+  error?: string;
+  message?: string;
+};
 
-const SAMPLE_RECOMMENDATION_RESPONSE: RecommendationResponse = {
-  recommendations: [
-    {
-      Title: "Software Developer - Entry Level",
-      score: 63.106441497802734,
-      Responsibilities: [
-        "Contribute to software development projects",
-        "Write clean code in Java, Python, or C++",
-        "Assist in developing web interfaces with HTML, CSS, JavaScript",
-        "Participate in debugging and testing",
-        "Collaborate in Agile sprints",
-        "Learn from senior engineers and adapt to new technologies",
-      ],
-      primary_skill: {
-        coverage_score: 80.0,
-        matched_count: 4,
-        total_role_skills: 5,
-        matched: ["Python", "C++", "Javascript", "MySql"],
-        missing_skills: ["java"],
-      },
-      secondry_skill: {
-        coverage_score: 60.0,
-        matched_count: 3,
-        total_role_skills: 5,
-        matched: ["HTML", "CSS", "Git"],
-        missing_skills: ["problemsolving", "collaboration"],
-      },
-      project: {
-        semantic_score: 42.67176818847656,
-        skills: ["Collaboration", "Git", "CSS", "HTML"],
-        missing: [
-          "C++",
-          "SQL",
-          "Java",
-          "Python",
-          "JavaScript",
-          "Problem-solving",
-        ],
-        match_score: 40.0,
-      },
-      experience: { score: 0 },
-      achievment: {
-        final_score: 49.59000015258789,
-        semantic_impact: 50.84000015258789,
-        relevance: 40.5,
-        leadership: 57.650001525878906,
-        prestige: 26.489999771118164,
-        comp_bonus: 0,
-        quant_bonus: 25,
-      },
-      certificates: { final_score: 0 },
-    },
-    {
-      Title: "Full Stack Developer - Entry Level",
-      score: 56.210227966308594,
-      Responsibilities: [
-        "Develop end-to-end web applications",
-        "Write clean code in JavaScript and Python",
-        "Work with frontend frameworks like React or Angular",
-        "Assist in building backend services using Node.js or Django",
-        "Participate in testing, debugging, and Agile sprints",
-        "Learn modern deployment and cloud practices",
-      ],
-      primary_skill: {
-        coverage_score: 44.0,
-        matched_count: 4,
-        total_role_skills: 9,
-        matched: ["Javascript", "ReactJs", "MySql", "NodeJs"],
-        missing_skills: ["flask", "pythondjango", "nosql", "angular", "vuejs"],
-      },
-      secondry_skill: {
-        coverage_score: 100.0,
-        matched_count: 3,
-        total_role_skills: 3,
-        matched: ["HTML", "CSS", "Git"],
-        missing_skills: [],
-      },
-      project: {
-        semantic_score: 50.75090026855469,
-        skills: ["NoSQL", "Git", "CSS3"],
-        missing: [
-          "React",
-          "Flask)",
-          "Python (Django",
-          "SQL",
-          "Node.js",
-          "Angular",
-          "JavaScript (ES6+)",
-          "Vue.js",
-          "HTML5",
-        ],
-        match_score: 25.0,
-      },
-      experience: { score: 0 },
-      achievment: {
-        final_score: 52.150001525878906,
-        semantic_impact: 50.84000015258789,
-        relevance: 47.83000183105469,
-        leadership: 57.650001525878906,
-        prestige: 26.489999771118164,
-        comp_bonus: 0,
-        quant_bonus: 25,
-      },
-      certificates: { final_score: 0 },
-    },
-    {
-      Title: "Frontend Developer - Entry Level",
-      score: 53.54189682006836,
-      Responsibilities: [
-        "Build responsive and interactive web pages",
-        "Implement UI designs",
-        "Assist in basic testing and debugging",
-        "Integrate frontend with backend APIs",
-        "Participate in code reviews",
-        "Collaborate with team members",
-      ],
-      primary_skill: {
-        coverage_score: 40.0,
-        matched_count: 2,
-        total_role_skills: 5,
-        matched: ["Javascript", "ReactJs"],
-        missing_skills: ["vuejs", "angular", "tailwindcss"],
-      },
-      secondry_skill: {
-        coverage_score: 60.0,
-        matched_count: 3,
-        total_role_skills: 5,
-        matched: ["HTML", "CSS", "Git"],
-        missing_skills: ["bootstrap", "browserdevelopertools"],
-      },
-      project: {
-        semantic_score: 50.54759216308594,
-        skills: ["Tailwind CSS", "Git", "CSS", "HTML"],
-        missing: [
-          "React",
-          "Vue.js",
-          "JavaScript",
-          "Angular",
-          "Bootstrap",
-          "Browser Developer Tools",
-        ],
-        match_score: 40.0,
-      },
-      experience: { score: 0 },
-      achievment: {
-        final_score: 52.70000076293945,
-        semantic_impact: 50.84000015258789,
-        relevance: 49.400001525878906,
-        leadership: 57.650001525878906,
-        prestige: 26.489999771118164,
-        comp_bonus: 0,
-        quant_bonus: 25,
-      },
-      certificates: { final_score: 0 },
-    },
-    {
-      Title: "Web Developer",
-      score: 52.75364685058594,
-      Responsibilities: [
-        "Assist in front-end development tasks",
-        "Write basic HTML, CSS, and JavaScript code",
-        "Develop small components using React or Angular",
-        "Support backend API integration",
-        "Participate in version control with Git/GitHub",
-        "Learn responsive design principles",
-        "Assist in testing and debugging",
-      ],
-      primary_skill: {
-        coverage_score: 62.0,
-        matched_count: 5,
-        total_role_skills: 8,
-        matched: ["Javascript", "MongoDB Atlas", "ReactJs", "MySql", "NodeJs"],
-        missing_skills: ["restfulapis", "angular", "ajax"],
-      },
-      secondry_skill: {
-        coverage_score: 50.0,
-        matched_count: 4,
-        total_role_skills: 8,
-        matched: ["HTML", "CSS", "Git", "Github"],
-        missing_skills: ["ux", "php", "responsivedesign", "ui"],
-      },
-      project: {
-        semantic_score: 46.170597076416016,
-        skills: ["MongoDB", "CSS3", "Git", "GitHub"],
-        missing: [
-          "React",
-          "MySQL",
-          "RESTful APIs",
-          "Angular",
-          "Node.js",
-          "JavaScript",
-          "AJAX",
-          "UX",
-          "PHP",
-          "Responsive Design",
-          "HTML5",
-          "UI",
-        ],
-        match_score: 25.0,
-      },
-      experience: { score: 0 },
-      achievment: {
-        final_score: 50.7400016784668,
-        semantic_impact: 50.84000015258789,
-        relevance: 43.790000915527344,
-        leadership: 57.650001525878906,
-        prestige: 26.489999771118164,
-        comp_bonus: 0,
-        quant_bonus: 25,
-      },
-      certificates: { final_score: 0 },
-    },
-    {
-      Title: "Backend Developer - Entry Level",
-      score: 50.761207580566406,
-      Responsibilities: [
-        "Assist in building server-side applications",
-        "Develop RESTful APIs",
-        "Work with SQL/NoSQL databases",
-        "Participate in testing and debugging",
-        "Learn cloud deployment and security fundamentals",
-      ],
-      primary_skill: {
-        coverage_score: 50.0,
-        matched_count: 5,
-        total_role_skills: 10,
-        matched: ["Python", "MongoDB Atlas", "PostgreSQL", "MySql", "NodeJs"],
-        missing_skills: ["expressjs", "restfulapi", "django", "java", "flask"],
-      },
-      secondry_skill: {
-        coverage_score: 33.0,
-        matched_count: 1,
-        total_role_skills: 3,
-        matched: ["Git"],
-        missing_skills: ["redis", "graphql"],
-      },
-      project: {
-        semantic_score: 54.14373779296875,
-        skills: ["MongoDB", "PostgreSQL", "Git", "MySQL"],
-        missing: [
-          "Express.js",
-          "RESTful API",
-          "Django",
-          "Java",
-          "Python",
-          "Flask",
-          "Node.js",
-          "Redis",
-          "GraphQL",
-        ],
-        match_score: 30.76923076923077,
-      },
-      experience: { score: 0 },
-      achievment: {
-        final_score: 53.630001068115234,
-        semantic_impact: 50.84000015258789,
-        relevance: 52.040000915527344,
-        leadership: 57.650001525878906,
-        prestige: 26.489999771118164,
-        comp_bonus: 0,
-        quant_bonus: 25,
-      },
-      certificates: { final_score: 0 },
-    },
-  ],
+const toNumber = (value: unknown) =>
+  typeof value === "number" && Number.isFinite(value) ? value : 0;
+
+const toStringArray = (value: unknown) =>
+  Array.isArray(value)
+    ? value.filter(
+        (item): item is string =>
+          typeof item === "string" && item.trim().length > 0,
+      )
+    : [];
+
+const normalizeSkillCoverage = (
+  coverage?: StoredSkillCoverage,
+): NormalizedSkillCoverage => ({
+  coverage_score: toNumber(coverage?.coverage_score),
+  matched_count: toNumber(coverage?.matched_count),
+  total_role_skills: toNumber(coverage?.total_role_skills),
+  matched: toStringArray(coverage?.matched),
+  missing_skills: toStringArray(coverage?.missing_skills),
+});
+
+const normalizeProjectFeedback = (
+  project?: StoredProjectFeedback,
+): NormalizedProjectFeedback => ({
+  semantic_score: toNumber(project?.semantic_score),
+  skills: toStringArray(project?.skills),
+  missing: toStringArray(project?.missing),
+  match_score: toNumber(project?.match_score),
+});
+
+const normalizeAchievement = (
+  achievement?: StoredAchievement,
+): NormalizedAchievement => ({
+  final_score: toNumber(achievement?.final_score),
+  semantic_impact: toNumber(achievement?.semantic_impact),
+  relevance: toNumber(achievement?.relevance),
+  leadership: toNumber(achievement?.leadership),
+  prestige: toNumber(achievement?.prestige),
+  comp_bonus: toNumber(achievement?.comp_bonus),
+  quant_bonus: toNumber(achievement?.quant_bonus),
+});
+
+const normalizeJobRecommendations = (
+  payload: RecommendationResponse,
+): JobRecommendation[] => {
+  const rawJobs =
+    payload.job_recommendations ?? payload.jobRecommendations ?? payload.jobs;
+  if (!Array.isArray(rawJobs)) return [];
+
+  return rawJobs
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+
+      const raw = item as {
+        title?: unknown;
+        Title?: unknown;
+        tittle?: unknown;
+        link?: unknown;
+        url?: unknown;
+        links?: unknown;
+      };
+      const titleSource = raw.title ?? raw.Title ?? raw.tittle;
+      const title =
+        typeof titleSource === "string" ? titleSource.trim() : "";
+      if (!title) return null;
+
+      const normalizedLinks = {
+        optimized_query: "",
+        google_jobs: "",
+        linkedin: "",
+        unstop: "",
+        wellfound: "",
+      };
+
+      if (raw.links && typeof raw.links === "object") {
+        const links = raw.links as Record<string, unknown>;
+        normalizedLinks.optimized_query =
+          typeof links.optimized_query === "string"
+            ? links.optimized_query
+            : "";
+        normalizedLinks.google_jobs =
+          typeof links.google_jobs === "string" ? links.google_jobs : "";
+        normalizedLinks.linkedin =
+          typeof links.linkedin === "string" ? links.linkedin : "";
+        normalizedLinks.unstop =
+          typeof links.unstop === "string" ? links.unstop : "";
+        normalizedLinks.wellfound =
+          typeof links.wellfound === "string" ? links.wellfound : "";
+      }
+
+      const fallbackSingleLink =
+        typeof raw.link === "string"
+          ? raw.link
+          : typeof raw.url === "string"
+            ? raw.url
+            : "";
+      if (!normalizedLinks.google_jobs && fallbackSingleLink) {
+        normalizedLinks.google_jobs = fallbackSingleLink;
+      }
+
+      const hasAnyLink = Object.values(normalizedLinks).some(
+        (value) => value.trim().length > 0,
+      );
+      if (!hasAnyLink) return null;
+
+      return {
+        title,
+        links: normalizedLinks,
+      } satisfies JobRecommendation;
+    })
+    .filter((job): job is JobRecommendation => job !== null);
 };
 
 const isPdf = (file: File) =>
   file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
 
 const formatFileSize = (bytes: number) => {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  if (bytes < 5*1024) return `${bytes} B`;
+  if (bytes < 5* 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (5* 1024 * 1024)).toFixed(2)} MB`;
 };
 
 const formatScore = (score: number) => score.toFixed(2);
@@ -341,7 +190,6 @@ const getScoreStatusClass = (score: number) => {
 
 export default function AnalyzePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [targetRole] = useState<string>(TARGET_ROLE_OPTIONS[0]);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [uploadedResume, setUploadedResume] = useState<UploadedResume | null>(
     null,
@@ -353,6 +201,27 @@ export default function AnalyzePage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const activeUploadIdRef = useRef(0);
+  const storedRecommendations = useRecommendationJobsStore(
+    (state) => state.recommendations,
+  );
+  const setRecommendationJobs = useRecommendationJobsStore(
+    (state) => state.setRecommendationJobs,
+  );
+  const clearRecommendationJobs = useRecommendationJobsStore(
+    (state) => state.clearRecommendationJobs,
+  );
+  const hasStoredRecommendations = storedRecommendations.length > 0;
+
+  const showPreviousRecommendations = () => {
+    if (!hasStoredRecommendations) return;
+
+    setErrorMessage(null);
+    setAnalysis({
+      recommendations: storedRecommendations,
+      analyzedAt: "Previously generated",
+    });
+    setSelectedRecommendationTitle(storedRecommendations[0]?.Title ?? "");
+  };
 
   const handleNewFile = async (file: File | null) => {
     if (!file) return;
@@ -368,6 +237,7 @@ export default function AnalyzePage() {
     setAnalysis(null);
     setUploadedResume(null);
     setSelectedRecommendationTitle("");
+    clearRecommendationJobs();
     setSelectedFile(file);
 
     const uploadId = activeUploadIdRef.current + 1;
@@ -416,12 +286,13 @@ export default function AnalyzePage() {
     setAnalysis(null);
     setUploadedResume(null);
     setSelectedRecommendationTitle("");
+    clearRecommendationJobs();
     setErrorMessage(null);
     setIsUploading(false);
     setIsDragging(false);
   };
 
-  const runAnalysis = () => {
+  const runAnalysis = async () => {
     if (!selectedFile) {
       setErrorMessage("Upload a resume PDF first to generate recommendations.");
       return;
@@ -438,30 +309,61 @@ export default function AnalyzePage() {
     }
 
     setErrorMessage(null);
+    setAnalysis(null);
+    setSelectedRecommendationTitle("");
+    clearRecommendationJobs();
     setIsAnalyzing(true);
 
-    window.setTimeout(() => {
-      const normalizedTarget = targetRole.toLowerCase();
-      const rankedRecommendations = [
-        ...SAMPLE_RECOMMENDATION_RESPONSE.recommendations,
-      ].sort((a, b) => {
-        const aTarget = a.Title.toLowerCase().includes(normalizedTarget)
-          ? 1
-          : 0;
-        const bTarget = b.Title.toLowerCase().includes(normalizedTarget)
-          ? 1
-          : 0;
-        if (aTarget !== bTarget) return bTarget - aTarget;
-        return b.score - a.score;
+    try {
+      const response = await axios.post<RecommendationResponse>(SCORE_API_URL, {
+        resume_url: uploadedResume.secureUrl,
       });
+      console.log(response)
+      const rankedRecommendations = [...(response.data.recommendations ?? [])]
+        .filter((item) => item?.Title)
+        .sort((a, b) => toNumber(b.score) - toNumber(a.score));
+
+      if (rankedRecommendations.length === 0) {
+        throw new Error(
+          "Scoring API returned no recommendations for this resume.",
+        );
+      }
 
       setAnalysis({
         recommendations: rankedRecommendations,
         analyzedAt: new Date().toLocaleTimeString(),
       });
+      setRecommendationJobs({
+        recommendations: rankedRecommendations,
+        jobs: normalizeJobRecommendations(response.data),
+      });
       setSelectedRecommendationTitle(rankedRecommendations[0]?.Title ?? "");
+    } catch (error) {
+      setAnalysis(null);
+      clearRecommendationJobs();
+
+      if (axios.isAxiosError(error)) {
+        const apiError = error.response?.data as
+          | string
+          | ScoreErrorPayload
+          | undefined;
+        const message =
+          typeof apiError === "string"
+            ? apiError
+            : apiError?.detail ?? apiError?.error ?? apiError?.message;
+        setErrorMessage(
+          message?.trim() || "Failed to fetch recommendations from /score.",
+        );
+      } else {
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch recommendations from /score.",
+        );
+      }
+    } finally {
       setIsAnalyzing(false);
-    }, 700);
+    }
   };
 
   const topRecommendation = analysis?.recommendations[0] ?? null;
@@ -471,27 +373,55 @@ export default function AnalyzePage() {
     ) ??
     analysis?.recommendations[0] ??
     null;
+  const activeRecommendationScore = toNumber(activeRecommendation?.score);
+  const activePrimarySkill = normalizeSkillCoverage(
+    (activeRecommendation?.primary_skill ??
+      activeRecommendation?.["primary_skills"]) as StoredSkillCoverage,
+  );
+  const activeSecondarySkill = normalizeSkillCoverage(
+    (activeRecommendation?.secondry_skill ??
+      activeRecommendation?.["secondary_skill"] ??
+      activeRecommendation?.["secondary_skills"]) as StoredSkillCoverage,
+  );
+  const activeProject = normalizeProjectFeedback(
+    (activeRecommendation?.project ??
+      activeRecommendation?.projects) as StoredProjectFeedback,
+  );
+  const activeAchievement = normalizeAchievement(
+    (activeRecommendation?.achievment ??
+      activeRecommendation?.["achievement"]) as StoredAchievement,
+  );
+  const activeResponsibilities = toStringArray(
+    activeRecommendation?.Responsibilities ??
+      activeRecommendation?.["responsibilities"],
+  );
+  const activeExperienceScore = toNumber(activeRecommendation?.experience?.score);
+  const activeCertificatesScore = toNumber(
+    activeRecommendation?.certificates?.final_score ??
+      (activeRecommendation?.["certificate"] as { final_score?: number | null })
+        ?.final_score,
+  );
 
   const roleSectionScores = activeRecommendation
     ? [
-        { label: "Overall Recommendation", value: activeRecommendation.score },
+        { label: "Overall Recommendation", value: activeRecommendationScore },
         {
           label: "Primary Skill Coverage",
-          value: activeRecommendation.primary_skill.coverage_score,
+          value: activePrimarySkill.coverage_score,
         },
         {
           label: "Secondary Skill Coverage",
-          value: activeRecommendation.secondry_skill.coverage_score,
+          value: activeSecondarySkill.coverage_score,
         },
-        { label: "Projects", value: activeRecommendation.project.match_score },
-        { label: "Experience", value: activeRecommendation.experience.score },
+        { label: "Projects", value: activeProject.match_score },
+        { label: "Experience", value: activeExperienceScore },
         {
           label: "Achievement",
-          value: activeRecommendation.achievment.final_score,
+          value: activeAchievement.final_score,
         },
         {
           label: "Certificates",
-          value: activeRecommendation.certificates.final_score,
+          value: activeCertificatesScore,
         },
       ]
     : [];
@@ -583,7 +513,7 @@ export default function AnalyzePage() {
 
             <button
               type="button"
-              onClick={runAnalysis}
+              onClick={() => void runAnalysis()}
               disabled={!selectedFile || !uploadedResume || isUploading || isAnalyzing}
               className="mt-5 w-full rounded-full bg-foreground px-5 py-2.5 text-sm font-semibold text-background transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -592,6 +522,15 @@ export default function AnalyzePage() {
                 : isAnalyzing
                   ? "Analyzing Resume..."
                   : "Generate Insights"}
+            </button>
+
+            <button
+              type="button"
+              onClick={showPreviousRecommendations}
+              disabled={!hasStoredRecommendations || isUploading || isAnalyzing}
+              className="mt-3 w-full rounded-full border border-foreground bg-background px-5 py-2.5 text-sm font-semibold text-foreground transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Show Previous Recommendation
             </button>
 
             {analysis && (
@@ -635,7 +574,7 @@ export default function AnalyzePage() {
                     </h3>
                     <p className="text-3xl font-bold text-foreground">
                       {topRecommendation
-                        ? `${formatScore(topRecommendation.score)}%`
+                        ? `${formatScore(toNumber(topRecommendation.score))}%`
                         : "-"}
                     </p>
                   </div>
@@ -668,7 +607,7 @@ export default function AnalyzePage() {
                   >
                     {analysis.recommendations.map((item) => (
                       <option key={item.Title} value={item.Title}>
-                        {item.Title} ({formatScore(item.score)}%)
+                        {item.Title} ({formatScore(toNumber(item.score))}%)
                       </option>
                     ))}
                   </select>
@@ -678,14 +617,14 @@ export default function AnalyzePage() {
                       <div className="mb-1 flex items-center justify-between text-sm text-foreground">
                         <p>{activeRecommendation.Title}</p>
                         <p className="font-semibold">
-                          {formatScore(activeRecommendation.score)}%
+                          {formatScore(activeRecommendationScore)}%
                         </p>
                       </div>
                       <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/10">
                         <div
                           className="h-full bg-foreground transition-[width]"
                           style={{
-                            width: `${Math.min(activeRecommendation.score, 100)}%`,
+                            width: `${Math.min(activeRecommendationScore, 100)}%`,
                           }}
                         />
                       </div>
@@ -705,22 +644,18 @@ export default function AnalyzePage() {
                         </span>{" "}
                         has an overall recommendation score of{" "}
                         <span
-                          className={`font-semibold ${getScoreStatusClass(activeRecommendation.score)}`}
+                          className={`font-semibold ${getScoreStatusClass(activeRecommendationScore)}`}
                         >
-                          {formatScore(activeRecommendation.score)}%
+                          {formatScore(activeRecommendationScore)}%
                         </span>
                         . Primary skill coverage is{" "}
                         <span className="font-semibold">
-                          {formatScore(
-                            activeRecommendation.primary_skill.coverage_score,
-                          )}
+                          {formatScore(activePrimarySkill.coverage_score)}
                           %
                         </span>{" "}
                         and secondary skill coverage is{" "}
                         <span className="font-semibold">
-                          {formatScore(
-                            activeRecommendation.secondry_skill.coverage_score,
-                          )}
+                          {formatScore(activeSecondarySkill.coverage_score)}
                           %
                         </span>
                         .
@@ -732,14 +667,20 @@ export default function AnalyzePage() {
                         Responsibilities
                       </p>
                       <ul className="mt-3 space-y-2 text-sm leading-relaxed text-foreground/80">
-                        {activeRecommendation.Responsibilities.map((item) => (
-                          <li
-                            key={item}
-                            className="border-l-2 border-foreground/30 pl-3"
-                          >
-                            {item}
+                        {activeResponsibilities.length > 0 ? (
+                          activeResponsibilities.map((item) => (
+                            <li
+                              key={item}
+                              className="border-l-2 border-foreground/30 pl-3"
+                            >
+                              {item}
+                            </li>
+                          ))
+                        ) : (
+                          <li className="text-xs text-foreground/70">
+                            No responsibilities provided.
                           </li>
-                        ))}
+                        )}
                       </ul>
                     </div>
 
@@ -751,11 +692,11 @@ export default function AnalyzePage() {
                         {[
                           {
                             label: "Primary Skills",
-                            data: activeRecommendation.primary_skill,
+                            data: activePrimarySkill,
                           },
                           {
                             label: "Secondary Skills",
-                            data: activeRecommendation.secondry_skill,
+                            data: activeSecondarySkill,
                           },
                         ].map((skillBlock) => (
                           <div
@@ -860,71 +801,57 @@ export default function AnalyzePage() {
                         <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-foreground/80 sm:grid-cols-4">
                           <p>
                             Semantic:{" "}
-                            {formatScore(
-                              activeRecommendation.achievment.semantic_impact,
-                            )}
+                            {formatScore(activeAchievement.semantic_impact)}
                             %
                           </p>
                           <p>
                             Relevance:{" "}
-                            {formatScore(
-                              activeRecommendation.achievment.relevance,
-                            )}
+                            {formatScore(activeAchievement.relevance)}
                             %
                           </p>
                           <p>
                             Leadership:{" "}
-                            {formatScore(
-                              activeRecommendation.achievment.leadership,
-                            )}
+                            {formatScore(activeAchievement.leadership)}
                             %
                           </p>
                           <p>
                             Prestige:{" "}
-                            {formatScore(
-                              activeRecommendation.achievment.prestige,
-                            )}
+                            {formatScore(activeAchievement.prestige)}
                             %
                           </p>
                           <p>
                             Comp Bonus:{" "}
-                            {formatScore(
-                              activeRecommendation.achievment.comp_bonus,
-                            )}
+                            {formatScore(activeAchievement.comp_bonus)}
                             %
                           </p>
                           <p>
                             Quant Bonus:{" "}
-                            {formatScore(
-                              activeRecommendation.achievment.quant_bonus,
-                            )}
+                            {formatScore(activeAchievement.quant_bonus)}
                             %
                           </p>
                         </div>
                       </div>
 
-                      <div className="mt-4 bg-background/55 flex flex-col items-stretch justify-between gap-3 lg:flex-row">
-                        <div className="h-full w-full border border-border p-3 lg:w-[50%]">
+                      
+                        <div className="w-full border border-border p-3 ">
                           <p className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/60">
                             Project Feedback
                           </p>
                           <p className="mt-2 text-xs text-foreground/80">
                             Semantic Score:{" "}
-                            {formatScore(
-                              activeRecommendation.project.semantic_score,
-                            )}
+                            {formatScore(activeProject.semantic_score)}
                             %
                           </p>
                           <p className="mt-1 text-xs text-foreground/80">
                             Match Score:{" "}
-                            {formatScore(activeRecommendation.project.match_score)}
+                            {formatScore(activeProject.match_score)}
                             %
                           </p>
                           <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.15em] text-foreground/60">
                             Project Skills
                           </p>
                           <div className="mt-1 flex flex-wrap gap-2">
-                            {activeRecommendation.project.skills.map((skill) => (
+                            {activeProject.skills.map((skill) => (
                               <span
                                 key={`project-skill-${skill}`}
                                 className="border border-border bg-background/70 px-2 py-1 text-xs text-foreground"
@@ -937,7 +864,7 @@ export default function AnalyzePage() {
                             Missing In Projects
                           </p>
                           <div className="mt-1 flex flex-wrap gap-2">
-                            {activeRecommendation.project.missing.map(
+                            {activeProject.missing.map(
                               (skill, index) => (
                                 <span
                                   key={`project-missing-${skill}-${index}`}
@@ -949,20 +876,20 @@ export default function AnalyzePage() {
                             )}
                           </div>
                         </div>
-                        <div className="h-full w-full border border-border p-3 lg:w-[50%]">
+                        <div className="w-full border border-border p-3 ">
                           <p className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/60">
                             Experience Feedback
                           </p>
                           <p className="mt-2 text-xs text-foreground/80">
                             Experience Score:{" "}
-                            {formatScore(activeRecommendation.experience.score)}%
+                            {formatScore(activeExperienceScore)}%
                           </p>
                           <p className="mt-2 text-xs text-foreground/70">
                             Add quantified impact and role-specific work examples
                             to improve this section.
                           </p>
                         </div>
-                      </div>
+                      
                     </div>
                   </>
                 )}

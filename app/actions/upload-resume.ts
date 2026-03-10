@@ -79,6 +79,8 @@ export async function uploadResumeWithCloudinary(
       stream.end(fileBuffer);
     });
 
+    console.log(result.secure_url)
+
     return {
       success: true,
       upload: {

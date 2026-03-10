@@ -1,26 +1,97 @@
 "use client";
 
-import { ChangeEvent, Dispatch, DragEvent, SetStateAction, useRef, useState } from "react";
+import axios from "axios";
+import {
+  ChangeEvent,
+  Dispatch,
+  DragEvent,
+  SetStateAction,
+  useRef,
+  useState,
+} from "react";
 import { uploadResumeWithCloudinary } from "@/app/actions/upload-resume";
 import { type UploadedResume } from "@/lib/resume-upload";
+import {
+  type StoredAchievement,
+  type StoredProjectFeedback,
+  type StoredRecommendation,
+  type StoredSkillCoverage,
+  useRecommendationJobsStore,
+} from "@/lib/stores/recommendation-jobs-store";
 
-type SkillCoverage = {
-  inputSkills: string[];
+type NormalizedSkillCoverage = {
+  coverage_score: number;
+  matched_count: number;
+  total_role_skills: number;
   matched: string[];
-  missing: string[];
-  coverageScore: number;
+  missing_skills: string[];
 };
 
-type JDMatchResult = {
-  analyzedAt: string;
-  overallScore: number;
-  titleScore: number;
-  descriptionScore: number;
-  primarySkillCoverage: SkillCoverage;
-  secondarySkillCoverage: SkillCoverage;
-  strengths: string[];
-  recommendations: string[];
+type NormalizedProjectFeedback = {
+  semantic_score: number;
+  skills: string[];
+  missing: string[];
+  match_score: number;
 };
+
+type NormalizedAchievement = {
+  final_score: number;
+  semantic_impact: number;
+  relevance: number;
+  leadership: number;
+  prestige: number;
+  comp_bonus: number;
+  quant_bonus: number;
+};
+
+const JDMATCH_API_URL = "http://localhost:8000/jdmatch";
+type JDMatchErrorPayload = {
+  detail?: string;
+  error?: string;
+  message?: string;
+};
+
+const toNumber = (value: unknown) =>
+  typeof value === "number" && Number.isFinite(value) ? value : 0;
+
+const toStringArray = (value: unknown) =>
+  Array.isArray(value)
+    ? value.filter(
+        (item): item is string =>
+          typeof item === "string" && item.trim().length > 0,
+      )
+    : [];
+
+const normalizeSkillCoverage = (
+  coverage?: StoredSkillCoverage,
+): NormalizedSkillCoverage => ({
+  coverage_score: toNumber(coverage?.coverage_score),
+  matched_count: toNumber(coverage?.matched_count),
+  total_role_skills: toNumber(coverage?.total_role_skills),
+  matched: toStringArray(coverage?.matched),
+  missing_skills: toStringArray(coverage?.missing_skills),
+});
+
+const normalizeProjectFeedback = (
+  project?: StoredProjectFeedback,
+): NormalizedProjectFeedback => ({
+  semantic_score: toNumber(project?.semantic_score),
+  skills: toStringArray(project?.skills),
+  missing: toStringArray(project?.missing),
+  match_score: toNumber(project?.match_score),
+});
+
+const normalizeAchievement = (
+  achievement?: StoredAchievement,
+): NormalizedAchievement => ({
+  final_score: toNumber(achievement?.final_score),
+  semantic_impact: toNumber(achievement?.semantic_impact),
+  relevance: toNumber(achievement?.relevance),
+  leadership: toNumber(achievement?.leadership),
+  prestige: toNumber(achievement?.prestige),
+  comp_bonus: toNumber(achievement?.comp_bonus),
+  quant_bonus: toNumber(achievement?.quant_bonus),
+});
 
 const isPdf = (file: File) =>
   file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
@@ -55,12 +126,20 @@ export default function JDPage() {
   const [primarySkillDraft, setPrimarySkillDraft] = useState("");
   const [secondarySkillDraft, setSecondarySkillDraft] = useState("");
   const [jobDescription, setJobDescription] = useState("");
+  const [selectedRecommendationTitle, setSelectedRecommendationTitle] =
+    useState<string>("");
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isMatching, setIsMatching] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [result, setResult] = useState<JDMatchResult | null>(null);
+  const [analyzedAt, setAnalyzedAt] = useState<string | null>(null);
   const activeUploadIdRef = useRef(0);
+  const storedRecommendation = useRecommendationJobsStore(
+    (state) => state.jdMatchRecommendation,
+  );
+  const setJDMatchRecommendation = useRecommendationJobsStore(
+    (state) => state.setJDMatchRecommendation,
+  );
 
   const handleNewFile = async (file: File | null) => {
     if (!file) return;
@@ -73,7 +152,9 @@ export default function JDPage() {
     }
 
     setErrorMessage(null);
-    setResult(null);
+    setAnalyzedAt(null);
+    setJDMatchRecommendation(null);
+    setSelectedRecommendationTitle("");
     setUploadedResume(null);
     setSelectedFile(file);
 
@@ -122,7 +203,9 @@ export default function JDPage() {
     setSelectedFile(null);
     setUploadedResume(null);
     setErrorMessage(null);
-    setResult(null);
+    setAnalyzedAt(null);
+    setJDMatchRecommendation(null);
+    setSelectedRecommendationTitle("");
     setIsUploading(false);
     setIsDragging(false);
   };
@@ -158,7 +241,7 @@ export default function JDPage() {
     );
   };
 
-  const runJDMatch = () => {
+  const runJDMatch = async () => {
     if (!selectedFile) {
       setErrorMessage("Upload a resume PDF first before running JD Match.");
       return;
@@ -183,45 +266,109 @@ export default function JDPage() {
 
     setErrorMessage(null);
     setIsMatching(true);
+    setAnalyzedAt(null);
+    setJDMatchRecommendation(null);
+    setSelectedRecommendationTitle("");
 
-    window.setTimeout(() => {
-      const dummyPrimarySkills = primarySkills.length
-        ? primarySkills
-        : ["React", "TypeScript", "Node.js"];
-      const dummySecondarySkills = secondarySkills.length
-        ? secondarySkills
-        : ["Git", "Communication", "Problem Solving"];
-
-      setResult({
-        analyzedAt: new Date().toLocaleTimeString(),
-        overallScore: 95.8,
-        titleScore: 94.2,
-        descriptionScore: 93.9,
-        primarySkillCoverage: {
-          inputSkills: dummyPrimarySkills,
-          matched: dummyPrimarySkills,
-          missing: [],
-          coverageScore: 96,
-        },
-        secondarySkillCoverage: {
-          inputSkills: dummySecondarySkills,
-          matched: dummySecondarySkills,
-          missing: [],
-          coverageScore: 92,
-        },
-        strengths: [
-          "Strong overall profile fit for this role.",
-          "Primary and secondary skill sets align well with job needs.",
-          "Resume appears highly relevant for shortlisting.",
-        ],
-        recommendations: [
-          "Keep current resume version for this role.",
-          "Add one quantified project impact line to improve recruiter confidence.",
-        ],
+    try {
+      const response = await axios.post<StoredRecommendation>(JDMATCH_API_URL, {
+        j_title: jobTitle.trim(),
+        prim_skills: primarySkills,
+        secon_skills: secondarySkills,
+        j_resp: jobDescription.trim(),
+        resume_url: uploadedResume.secureUrl,
       });
+
+      const payload = response.data as StoredRecommendation | StoredRecommendation[];
+      const recommendation = Array.isArray(payload) ? payload[0] : payload;
+
+      if (!recommendation || typeof recommendation !== "object") {
+        throw new Error("JD Match API returned an invalid response.");
+      }
+
+      setJDMatchRecommendation(recommendation);
+      setAnalyzedAt(new Date().toLocaleTimeString());
+      setSelectedRecommendationTitle(recommendation.Title ?? "");
+    } catch (error) {
+      setJDMatchRecommendation(null);
+
+      if (axios.isAxiosError(error)) {
+        const apiError = error.response?.data as
+          | string
+          | JDMatchErrorPayload
+          | undefined;
+        const message =
+          typeof apiError === "string"
+            ? apiError
+            : apiError?.detail ?? apiError?.error ?? apiError?.message;
+        setErrorMessage(message?.trim() || "Failed to fetch data from /jdmatch.");
+      } else {
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch data from /jdmatch.",
+        );
+      }
+    } finally {
       setIsMatching(false);
-    }, 650);
+    }
   };
+
+  const activeRecommendation = storedRecommendation;
+  const activeRecommendationTitle =
+    activeRecommendation?.Title?.trim() || jobTitle.trim();
+  const activeRecommendationScore = toNumber(activeRecommendation?.score);
+  const activePrimarySkill = normalizeSkillCoverage(
+    (activeRecommendation?.primary_skill ??
+      activeRecommendation?.["primary_skills"]) as StoredSkillCoverage,
+  );
+  const activeSecondarySkill = normalizeSkillCoverage(
+    (activeRecommendation?.secondry_skill ??
+      activeRecommendation?.["secondary_skill"] ??
+      activeRecommendation?.["secondary_skills"]) as StoredSkillCoverage,
+  );
+  const activeProject = normalizeProjectFeedback(
+    (activeRecommendation?.project ??
+      activeRecommendation?.projects) as StoredProjectFeedback,
+  );
+  const activeAchievement = normalizeAchievement(
+    (activeRecommendation?.achievment ??
+      activeRecommendation?.["achievement"]) as StoredAchievement,
+  );
+  const activeResponsibilities = toStringArray(
+    activeRecommendation?.Responsibilities ??
+      activeRecommendation?.["responsibilities"],
+  );
+  const activeExperienceScore = toNumber(activeRecommendation?.experience?.score);
+  const activeCertificatesScore = toNumber(
+    activeRecommendation?.certificates?.final_score ??
+      (activeRecommendation?.["certificate"] as { final_score?: number | null })
+        ?.final_score,
+  );
+
+  const roleSectionScores = activeRecommendation
+    ? [
+        { label: "Overall JD Match", value: activeRecommendationScore },
+        {
+          label: "Primary Skill Coverage",
+          value: activePrimarySkill.coverage_score,
+        },
+        {
+          label: "Secondary Skill Coverage",
+          value: activeSecondarySkill.coverage_score,
+        },
+        { label: "Projects", value: activeProject.match_score },
+        { label: "Experience", value: activeExperienceScore },
+        {
+          label: "Achievement",
+          value: activeAchievement.final_score,
+        },
+        {
+          label: "Certificates",
+          value: activeCertificatesScore,
+        },
+      ]
+    : [];
 
   return (
     <main className="relative z-10 min-h-screen w-full">
@@ -534,10 +681,10 @@ export default function JDPage() {
 
           <div className="self-start border border-border bg-background/65 p-5 backdrop-blur-sm sm:p-6">
             <h2 className="text-lg font-semibold text-foreground sm:text-xl">
-              JD Match Result
+              Recommendation Result
             </h2>
 
-            {!result ? (
+            {!activeRecommendation ? (
               <div className="mt-4 border border-border bg-background/55 p-6 text-center">
                 <p className="text-sm text-foreground/75">
                   Add your resume and JD details, then click{" "}
@@ -549,183 +696,311 @@ export default function JDPage() {
               <div className="mt-4 space-y-4">
                 <div className="border border-border bg-background/70 p-4">
                   <p className="text-xs uppercase tracking-[0.2em] text-foreground/60">
-                    Overall Match
+                    Top Recommendation
                   </p>
                   <div className="mt-2 flex items-end justify-between gap-3">
                     <h3 className="text-xl font-semibold text-foreground sm:text-2xl">
-                      {jobTitle}
+                      {activeRecommendationTitle || "JD Match"}
                     </h3>
-                    <p
-                      className={`text-3xl font-bold ${getScoreStatusClass(result.overallScore)}`}
-                    >
-                      {formatScore(result.overallScore)}%
+                    <p className="text-3xl font-bold text-foreground">
+                      {formatScore(activeRecommendationScore)}%
                     </p>
                   </div>
+                  <p className="mt-2 text-sm text-foreground/75">
+                    Choose any role below to see individual role summary and
+                    feedback sections.
+                  </p>
                   <p className="mt-2 text-xs text-foreground/60">
-                    Analyzed at {result.analyzedAt}
+                    Analyzed at {analyzedAt ?? "Recently generated"}
                   </p>
                 </div>
 
                 <div className="border border-border bg-background/70 p-4">
                   <p className="text-sm font-semibold text-foreground">
-                    Score Breakdown
+                    Role Recommendation Scores
                   </p>
-                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    {[
-                      { label: "Overall JD Match", value: result.overallScore },
-                      {
-                        label: "Primary Skill Coverage",
-                        value: result.primarySkillCoverage.coverageScore,
-                      },
-                      {
-                        label: "Secondary Skill Coverage",
-                        value: result.secondarySkillCoverage.coverageScore,
-                      },
-                      { label: "Job Title Relevance", value: result.titleScore },
-                      {
-                        label: "Job Description Relevance",
-                        value: result.descriptionScore,
-                      },
-                    ].map((item) => (
-                      <div
-                        key={item.label}
-                        className="border border-border bg-background/55 p-3"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm text-foreground">{item.label}</p>
-                          <p
-                            className={`text-sm font-bold ${getScoreStatusClass(item.value)}`}
-                          >
-                            {formatScore(item.value)}%
-                          </p>
-                        </div>
-                        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-foreground/10">
+                  <label
+                    htmlFor="recommended-role"
+                    className="mt-3 block text-xs uppercase tracking-[0.15em] text-foreground/60"
+                  >
+                    Select Recommended Role
+                  </label>
+                  <select
+                    id="recommended-role"
+                    value={selectedRecommendationTitle || activeRecommendationTitle}
+                    onChange={(event) =>
+                      setSelectedRecommendationTitle(event.target.value)
+                    }
+                    className="mt-2 w-full border border-border bg-background/70 px-3 py-2 text-sm text-foreground focus:outline-none"
+                  >
+                    {activeRecommendation?.Title ? (
+                      <option value={activeRecommendation.Title}>
+                        {activeRecommendation.Title} (
+                        {formatScore(activeRecommendationScore)}%)
+                      </option>
+                    ) : null}
+                  </select>
+
+                  {activeRecommendation && (
+                    <div className="mt-3">
+                      <div className="mb-1 flex items-center justify-between text-sm text-foreground">
+                        <p>{activeRecommendation.Title}</p>
+                        <p className="font-semibold">
+                          {formatScore(activeRecommendationScore)}%
+                        </p>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-foreground/10">
+                        <div
+                          className="h-full bg-foreground transition-[width]"
+                          style={{
+                            width: `${Math.min(activeRecommendationScore, 100)}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {activeRecommendation && (
+                  <>
+                    <div className="border border-border bg-background/70 p-4">
+                      <p className="text-sm font-semibold text-foreground">
+                        Role Summary
+                      </p>
+                      <p className="mt-2 text-sm leading-relaxed text-foreground/80">
+                        <span className="font-semibold">
+                          {activeRecommendation.Title}
+                        </span>{" "}
+                        has an overall recommendation score of{" "}
+                        <span
+                          className={`font-semibold ${getScoreStatusClass(activeRecommendationScore)}`}
+                        >
+                          {formatScore(activeRecommendationScore)}%
+                        </span>
+                        . Primary skill coverage is{" "}
+                        <span className="font-semibold">
+                          {formatScore(activePrimarySkill.coverage_score)}%
+                        </span>{" "}
+                        and secondary skill coverage is{" "}
+                        <span className="font-semibold">
+                          {formatScore(activeSecondarySkill.coverage_score)}%
+                        </span>
+                        .
+                      </p>
+                    </div>
+
+                    <div className="border border-border bg-background/70 p-4">
+                      <p className="text-sm font-semibold text-foreground">
+                        Responsibilities
+                      </p>
+                      <ul className="mt-3 space-y-2 text-sm leading-relaxed text-foreground/80">
+                        {activeResponsibilities.length > 0 ? (
+                          activeResponsibilities.map((item) => (
+                            <li
+                              key={item}
+                              className="border-l-2 border-foreground/30 pl-3"
+                            >
+                              {item}
+                            </li>
+                          ))
+                        ) : (
+                          <li className="text-xs text-foreground/70">
+                            No responsibilities provided.
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+
+                    <div className="border border-border bg-background/70 p-4">
+                      <p className="text-sm font-semibold text-foreground">
+                        Skill Match Feedback
+                      </p>
+                      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {[
+                          {
+                            label: "Primary Skills",
+                            data: activePrimarySkill,
+                          },
+                          {
+                            label: "Secondary Skills",
+                            data: activeSecondarySkill,
+                          },
+                        ].map((skillBlock) => (
                           <div
-                            className="h-full bg-foreground"
-                            style={{ width: `${Math.min(item.value, 100)}%` }}
-                          />
+                            key={skillBlock.label}
+                            className="border border-border bg-background/55 p-3"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm font-semibold text-foreground">
+                                {skillBlock.label}
+                              </p>
+                              <p className="text-sm font-bold text-foreground">
+                                {formatScore(skillBlock.data.coverage_score)}%
+                              </p>
+                            </div>
+                            <p className="mt-1 text-xs text-foreground/70">
+                              Matched {skillBlock.data.matched_count}/
+                              {skillBlock.data.total_role_skills} role skills
+                            </p>
+                            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-foreground/10">
+                              <div
+                                className="h-full bg-foreground"
+                                style={{
+                                  width: `${Math.min(skillBlock.data.coverage_score, 100)}%`,
+                                }}
+                              />
+                            </div>
+
+                            <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-foreground/70">
+                              Matched
+                            </p>
+                            <div className="mt-1 flex flex-wrap gap-2">
+                              {skillBlock.data.matched.map((skill) => (
+                                <span
+                                  key={`${skillBlock.label}-matched-${skill}`}
+                                  className="border border-border bg-background/70 px-2 py-1 text-xs text-foreground"
+                                >
+                                  {skill}
+                                </span>
+                              ))}
+                            </div>
+
+                            <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-foreground/70">
+                              Missing
+                            </p>
+                            <div className="mt-1 flex flex-wrap gap-2">
+                              {skillBlock.data.missing_skills.length > 0 ? (
+                                skillBlock.data.missing_skills.map((skill) => (
+                                  <span
+                                    key={`${skillBlock.label}-missing-${skill}`}
+                                    className="border border-border bg-background/40 px-2 py-1 text-xs text-foreground/70"
+                                  >
+                                    {skill}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="text-xs text-foreground/70">
+                                  No missing skills.
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="border border-border bg-background/70 p-4">
+                      <p className="text-sm font-semibold text-foreground">
+                        Section Score Feedback
+                      </p>
+                      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {roleSectionScores.map((item) => (
+                          <div
+                            key={item.label}
+                            className="border border-border bg-background/55 p-3"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm text-foreground">
+                                {item.label}
+                              </p>
+                              <p
+                                className={`text-sm font-bold ${getScoreStatusClass(item.value)}`}
+                              >
+                                {formatScore(item.value)}%
+                              </p>
+                            </div>
+                            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-foreground/10">
+                              <div
+                                className="h-full bg-foreground"
+                                style={{
+                                  width: `${Math.min(item.value, 100)}%`,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-4 border border-border bg-background/55 p-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-foreground/60">
+                          Achievement Breakdown
+                        </p>
+                        <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-foreground/80 sm:grid-cols-4">
+                          <p>
+                            Semantic: {formatScore(activeAchievement.semantic_impact)}%
+                          </p>
+                          <p>
+                            Relevance: {formatScore(activeAchievement.relevance)}%
+                          </p>
+                          <p>
+                            Leadership: {formatScore(activeAchievement.leadership)}%
+                          </p>
+                          <p>
+                            Prestige: {formatScore(activeAchievement.prestige)}%
+                          </p>
+                          <p>
+                            Comp Bonus: {formatScore(activeAchievement.comp_bonus)}%
+                          </p>
+                          <p>
+                            Quant Bonus: {formatScore(activeAchievement.quant_bonus)}%
+                          </p>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
 
-                <div className="border border-border bg-background/70 p-4">
-                  <p className="text-sm font-semibold text-foreground">
-                    Skill Match Feedback
-                  </p>
-                  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    {[
-                      {
-                        label: "Primary Skills",
-                        data: result.primarySkillCoverage,
-                      },
-                      {
-                        label: "Secondary Skills",
-                        data: result.secondarySkillCoverage,
-                      },
-                    ].map((skillBlock) => (
-                      <div
-                        key={skillBlock.label}
-                        className="border border-border bg-background/55 p-3"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-foreground">
-                            {skillBlock.label}
+                      <div className="mt-4 bg-background/55 flex flex-col items-stretch justify-between gap-3 lg:flex-row">
+                        <div className="h-full w-full border border-border p-3 lg:w-[50%]">
+                          <p className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/60">
+                            Project Feedback
                           </p>
-                          <p className="text-sm font-bold text-foreground">
-                            {formatScore(skillBlock.data.coverageScore)}%
+                          <p className="mt-2 text-xs text-foreground/80">
+                            Semantic Score: {formatScore(activeProject.semantic_score)}%
                           </p>
-                        </div>
-                        <p className="mt-1 text-xs text-foreground/70">
-                          Matched {skillBlock.data.matched.length}/
-                          {skillBlock.data.inputSkills.length || 0} provided
-                          skills
-                        </p>
-                        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-foreground/10">
-                          <div
-                            className="h-full bg-foreground"
-                            style={{
-                              width: `${Math.min(skillBlock.data.coverageScore, 100)}%`,
-                            }}
-                          />
-                        </div>
-
-                        <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-foreground/70">
-                          Matched
-                        </p>
-                        <div className="mt-1 flex flex-wrap gap-2">
-                          {skillBlock.data.matched.length > 0 ? (
-                            skillBlock.data.matched.map((skill) => (
+                          <p className="mt-1 text-xs text-foreground/80">
+                            Match Score: {formatScore(activeProject.match_score)}%
+                          </p>
+                          <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.15em] text-foreground/60">
+                            Project Skills
+                          </p>
+                          <div className="mt-1 flex flex-wrap gap-2">
+                            {activeProject.skills.map((skill) => (
                               <span
-                                key={`${skillBlock.label}-matched-${skill}`}
+                                key={`project-skill-${skill}`}
                                 className="border border-border bg-background/70 px-2 py-1 text-xs text-foreground"
                               >
                                 {skill}
                               </span>
-                            ))
-                          ) : (
-                            <span className="text-xs text-foreground/70">
-                              No matched skills yet.
-                            </span>
-                          )}
-                        </div>
-
-                        <p className="mt-3 text-xs font-semibold uppercase tracking-wide text-foreground/70">
-                          Missing
-                        </p>
-                        <div className="mt-1 flex flex-wrap gap-2">
-                          {skillBlock.data.missing.length > 0 ? (
-                            skillBlock.data.missing.map((skill) => (
+                            ))}
+                          </div>
+                          <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.15em] text-foreground/60">
+                            Missing In Projects
+                          </p>
+                          <div className="mt-1 flex flex-wrap gap-2">
+                            {activeProject.missing.map((skill, index) => (
                               <span
-                                key={`${skillBlock.label}-missing-${skill}`}
+                                key={`project-missing-${skill}-${index}`}
                                 className="border border-border bg-background/40 px-2 py-1 text-xs text-foreground/70"
                               >
                                 {skill}
                               </span>
-                            ))
-                          ) : (
-                            <span className="text-xs text-foreground/70">
-                              No missing skills.
-                            </span>
-                          )}
+                            ))}
+                          </div>
+                        </div>
+                        <div className="h-full w-full border border-border p-3 lg:w-[50%]">
+                          <p className="text-xs font-bold uppercase tracking-[0.15em] text-foreground/60">
+                            Experience Feedback
+                          </p>
+                          <p className="mt-2 text-xs text-foreground/80">
+                            Experience Score: {formatScore(activeExperienceScore)}%
+                          </p>
+                          <p className="mt-2 text-xs text-foreground/70">
+                            Add quantified impact and role-specific work examples to
+                            improve this section.
+                          </p>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="border border-border bg-background/70 p-4">
-                  <p className="text-sm font-semibold text-foreground">
-                    Summary Output
-                  </p>
-                  <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
-                    <div className="border border-border bg-background/55 p-3">
-                      <p className="text-xs font-semibold uppercase tracking-[0.15em] text-foreground/60">
-                        Strengths
-                      </p>
-                      <ul className="mt-2 space-y-2 text-sm text-foreground/80">
-                        {result.strengths.map((item) => (
-                          <li key={item} className="border-l-2 border-foreground/30 pl-3">
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
                     </div>
-                    <div className="border border-border bg-background/55 p-3">
-                      <p className="text-xs font-semibold uppercase tracking-[0.15em] text-foreground/60">
-                        Recommendations
-                      </p>
-                      <ul className="mt-2 space-y-2 text-sm text-foreground/80">
-                        {result.recommendations.map((item) => (
-                          <li key={item} className="border-l-2 border-foreground/30 pl-3">
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
+                  </>
+                )}
               </div>
             )}
           </div>
