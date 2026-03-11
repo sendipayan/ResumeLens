@@ -33,6 +33,9 @@ export default function Navbar() {
 
         <div className="hidden md:flex  items-center gap-3">
           <nav className="flex items-center gap-2 sm:gap-3">
+             <Link href="/ats" className={navLinkClass}>
+              ATS score
+            </Link>
             <Link href="/analyze" className={navLinkClass}>
               Analyze
             </Link>
@@ -83,6 +86,13 @@ export default function Navbar() {
                 onClick={() => setIsMenuOpen(false)}
               >
                 Home
+              </Link>
+              <Link
+                href="/ats"
+                className={mobileNavLinkClass}
+                onClick={() => setIsMenuOpen(false)}
+              >
+                ATS score
               </Link>
               <Link
                 href="/analyze"

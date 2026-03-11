@@ -6,8 +6,11 @@ import type {
   UploadResumeActionResult,
 } from "@/lib/resume-upload";
 
-const ensureSource = (value: string): ResumeUploadSource =>
-  value === "jdmatch" ? "jdmatch" : "analyze";
+const ensureSource = (value: string): ResumeUploadSource => {
+  if (value === "jdmatch") return "jdmatch";
+  if (value === "ats") return "ats";
+  return "analyze";
+};
 
 export async function uploadResumeWithCloudinary(
   formData: FormData,
@@ -80,7 +83,6 @@ export async function uploadResumeWithCloudinary(
     });
 
     console.log(result.secure_url)
-
     return {
       success: true,
       upload: {

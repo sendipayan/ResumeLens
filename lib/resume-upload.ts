@@ -1,4 +1,4 @@
-export type ResumeUploadSource = "analyze" | "jdmatch";
+export type ResumeUploadSource = "analyze" | "jdmatch" | "ats";
 
 export type UploadedResume = {
   source: ResumeUploadSource;
