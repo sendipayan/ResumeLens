@@ -69,6 +69,9 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
+  verification: {
+    google: "kSC2HRfSq6iCxeGolMsN4WR4_mqRLFoQ6u6298ceaz0",
+  },
   category: "career",
 };
 
