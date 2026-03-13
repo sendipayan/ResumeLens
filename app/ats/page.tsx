@@ -2,8 +2,10 @@
 
 import axios from "axios";
 import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
-import { uploadResumeWithCloudinary } from "@/app/actions/upload-resume";
-import { type UploadedResume } from "@/lib/resume-upload";
+import {
+  type UploadResumeActionResult,
+  type UploadedResume,
+} from "@/lib/resume-upload";
 import { type AtsResult, useAtsStore } from "@/lib/stores/ats-store";
 
 type AtsResponse = {
@@ -81,16 +83,15 @@ const isPdf = (file: File) => {
   if (name.endsWith(".pdf")) return true;
 
   const type = file.type.toLowerCase();
+  if (!type || type === "application/octet-stream") return true;
+
   const allowedTypes = new Set([
     "application/pdf",
     "application/x-pdf",
     "application/acrobat",
-    "application/octet-stream",
   ]);
 
-  if (!allowedTypes.has(type)) return false;
-  if (type === "application/octet-stream") return name.endsWith(".pdf");
-  return true;
+  return allowedTypes.has(type);
 };
 
 const formatFileSize = (bytes: number) => {
@@ -123,6 +124,32 @@ export default function AtsPage() {
   const analyzedAt = useAtsStore((state) => state.analyzedAt);
   const setAtsResult = useAtsStore((state) => state.setAtsResult);
   const clearAtsResult = useAtsStore((state) => state.clearAtsResult);
+  const uploadResume = async (
+    file: File,
+    source: "analyze" | "ats" | "jdmatch",
+  ) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("source", source);
+    try {
+      const response = await axios.postForm<UploadResumeActionResult>(
+        "/api/upload-resume",
+        formData,
+      );
+
+      if (!response.data.success) {
+        throw new Error(
+          response.data.error ?? "Failed to upload resume to Cloudinary.",
+        );
+      }
+
+      return response.data.upload;
+    } catch (err: any) {
+      setErrorMessage(err);
+      
+    }
+    return null;
+  };
 
   useEffect(() => {
     return () => {
@@ -151,11 +178,14 @@ export default function AtsPage() {
   };
 
   const handleNewFile = async (file: File | null) => {
-    if (!file) return;
+    if (!file) {
+      setErrorMessage("no file selected");
+      return;
+    }
 
     if (!isPdf(file)) {
       setErrorMessage(
-        "Only PDF resumes are supported. Please upload a .pdf file.",
+        `Only PDF resumes are supported. Please upload a .pdf file. ${file}`,
       );
       return;
     }
@@ -169,17 +199,9 @@ export default function AtsPage() {
     activeUploadIdRef.current = uploadId;
     setIsUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("source", "ats");
-
-      const uploadResponse = await uploadResumeWithCloudinary(formData);
-      if (!uploadResponse.success) {
-        throw new Error(uploadResponse.error);
-      }
-
+      const upload = await uploadResume(file, "ats");
       if (activeUploadIdRef.current !== uploadId) return;
-      setUploadedResume(uploadResponse.upload);
+      setUploadedResume(upload);
     } catch (error) {
       if (activeUploadIdRef.current !== uploadId) return;
       setSelectedFile(null);
@@ -196,7 +218,6 @@ export default function AtsPage() {
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     void handleNewFile(event.target.files?.[0] ?? null);
-    event.target.value = "";
   };
 
   const handleDrop = (event: DragEvent<HTMLLabelElement>) => {
@@ -264,7 +285,9 @@ export default function AtsPage() {
           typeof apiError === "string"
             ? apiError
             : (apiError?.detail ?? apiError?.error ?? apiError?.message);
-        setErrorMessage(message?.trim() || "Failed to fetch ATS score from /ats.");
+        setErrorMessage(
+          message?.trim() || "Failed to fetch ATS score from /ats.",
+        );
       } else {
         setErrorMessage(
           error instanceof Error
@@ -330,7 +353,7 @@ export default function AtsPage() {
                 <input
                   id="ats-resume-upload"
                   type="file"
-                  accept="application/pdf,application/x-pdf,application/acrobat,application/octet-stream,.pdf"
+                  accept=".pdf"
                   className="sr-only"
                   onChange={handleFileChange}
                 />
@@ -449,7 +472,9 @@ export default function AtsPage() {
                         className="border border-border bg-background/55 p-3"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm text-foreground">{item.label}</p>
+                          <p className="text-sm text-foreground">
+                            {item.label}
+                          </p>
                           <p
                             className={`text-sm font-bold ${getScoreStatusClass(item.value)}`}
                           >

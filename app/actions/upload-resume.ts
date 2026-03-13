@@ -1,4 +1,4 @@
-"use server";
+
 
 import { v2 as cloudinary } from "cloudinary";
 import type {
@@ -15,11 +15,11 @@ const ensureSource = (value: string): ResumeUploadSource => {
 export async function uploadResumeWithCloudinary(
   formData: FormData,
 ): Promise<UploadResumeActionResult> {
+  console.log("working")
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
   const apiKey = process.env.CLOUDINARY_API_KEY;
   const apiSecret = process.env.CLOUDINARY_API_SECRET;
   const uploadFolder = process.env.CLOUDINARY_UPLOAD_FOLDER ?? "resumelens";
-
   if (!cloudName || !apiKey || !apiSecret) {
     return {
       success: false,
@@ -44,13 +44,9 @@ export async function uploadResumeWithCloudinary(
     "application/pdf",
     "application/x-pdf",
     "application/acrobat",
-    "application/octet-stream",
   ]);
 
-  const isPdf =
-    name.endsWith(".pdf") ||
-    (allowedTypes.has(type) &&
-      (type !== "application/octet-stream" || name.endsWith(".pdf")));
+  const isPdf = allowedTypes.has(type) || name.endsWith(".pdf");
   if (!isPdf) {
     return { success: false, error: "Only PDF resumes are supported." };
   }
@@ -64,6 +60,14 @@ export async function uploadResumeWithCloudinary(
 
   try {
     const fileBuffer = Buffer.from(await file.arrayBuffer());
+    const header = fileBuffer.subarray(0, 5).toString("utf8");
+    if (header !== "%PDF-") {
+      return {
+        success: false,
+        error:
+          "The selected file is not a valid PDF. Please export or download it as a PDF and try again.",
+      };
+    }
     const folder = `${uploadFolder}/${source}`;
 
     const result = await new Promise<{

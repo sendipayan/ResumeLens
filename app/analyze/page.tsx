@@ -3,8 +3,7 @@
 import axios from "axios";
 import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { uploadResumeWithCloudinary } from "@/app/actions/upload-resume";
-import { type UploadedResume } from "@/lib/resume-upload";
+import { type UploadResumeActionResult, type UploadedResume } from "@/lib/resume-upload";
 import {
   type JobRecommendation,
   type StoredAchievement,
@@ -211,16 +210,15 @@ const isPdf = (file: File) => {
   if (name.endsWith(".pdf")) return true;
 
   const type = file.type.toLowerCase();
+  if (!type || type === "application/octet-stream") return true;
+
   const allowedTypes = new Set([
     "application/pdf",
     "application/x-pdf",
     "application/acrobat",
-    "application/octet-stream",
   ]);
 
-  if (!allowedTypes.has(type)) return false;
-  if (type === "application/octet-stream") return name.endsWith(".pdf");
-  return true;
+  return allowedTypes.has(type);
 };
 
 const formatFileSize = (bytes: number) => {
@@ -237,6 +235,26 @@ const getScoreStatusClass = (score: number) => {
   return "text-rose-600 dark:text-rose-400";
 };
 
+const uploadResume = async (
+  file: File,
+  source: "analyze" | "ats" | "jdmatch",
+) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("source", source);
+
+  const response = await axios.postForm<UploadResumeActionResult>(
+    "/api/upload-resume",
+    formData,
+  );
+  if (!response.data.success) {
+    throw new Error(
+      response.data.error ?? "Failed to upload resume to Cloudinary.",
+    );
+  }
+
+  return response.data.upload;
+};
 export default function AnalyzePage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
@@ -324,17 +342,9 @@ export default function AnalyzePage() {
     activeUploadIdRef.current = uploadId;
     setIsUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("source", "analyze");
-
-      const uploadResponse = await uploadResumeWithCloudinary(formData);
-      if (!uploadResponse.success) {
-        throw new Error(uploadResponse.error);
-      }
-
+      const upload = await uploadResume(file, "analyze");
       if (activeUploadIdRef.current !== uploadId) return;
-      setUploadedResume(uploadResponse.upload);
+      setUploadedResume(upload);
     } catch (error) {
       if (activeUploadIdRef.current !== uploadId) return;
       setSelectedFile(null);
