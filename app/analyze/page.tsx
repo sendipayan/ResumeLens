@@ -1,7 +1,7 @@
 "use client";
 
 import axios from "axios";
-import { ChangeEvent, DragEvent, useRef, useState } from "react";
+import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { uploadResumeWithCloudinary } from "@/app/actions/upload-resume";
 import { type UploadedResume } from "@/lib/resume-upload";
@@ -53,7 +53,8 @@ type AnalysisResult = {
   analyzedAt: string;
 };
 
-const SCORE_API_URL = "http://localhost:8000/score";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+const SCORE_API_URL = BACKEND_URL ? `${BACKEND_URL}/score` : "";
 type ScoreErrorPayload = {
   detail?: string;
   error?: string;
@@ -233,8 +234,10 @@ export default function AnalyzePage() {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showWakeUpNotice, setShowWakeUpNotice] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const activeUploadIdRef = useRef(0);
+  const wakeUpTimeoutRef = useRef<number | null>(null);
   const storedRecommendations = useRecommendationJobsStore(
     (state) => state.recommendations,
   );
@@ -248,6 +251,32 @@ export default function AnalyzePage() {
     (state) => state.clearRecommendationJobs,
   );
   const hasStoredRecommendations = storedRecommendations.length > 0;
+
+  useEffect(() => {
+    return () => {
+      if (wakeUpTimeoutRef.current) {
+        clearTimeout(wakeUpTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const scheduleWakeUpNotice = () => {
+    if (wakeUpTimeoutRef.current) {
+      clearTimeout(wakeUpTimeoutRef.current);
+    }
+    setShowWakeUpNotice(false);
+    wakeUpTimeoutRef.current = window.setTimeout(() => {
+      setShowWakeUpNotice(true);
+    }, 5000);
+  };
+
+  const clearWakeUpNotice = () => {
+    if (wakeUpTimeoutRef.current) {
+      clearTimeout(wakeUpTimeoutRef.current);
+      wakeUpTimeoutRef.current = null;
+    }
+    setShowWakeUpNotice(false);
+  };
 
   const showPreviousRecommendations = () => {
     if (!hasStoredRecommendations) return;
@@ -344,12 +373,19 @@ export default function AnalyzePage() {
       setErrorMessage("Resume upload failed. Please upload the PDF again.");
       return;
     }
+    if (!SCORE_API_URL) {
+      setErrorMessage(
+        "Missing NEXT_PUBLIC_BACKEND_URL. Add it to .env and restart the dev server.",
+      );
+      return;
+    }
 
     setErrorMessage(null);
     setAnalysis(null);
     setSelectedRecommendationTitle("");
     clearRecommendationJobs();
     setIsAnalyzing(true);
+    scheduleWakeUpNotice();
 
     try {
       const response = await axios.post<RecommendationResponse>(SCORE_API_URL, {
@@ -401,6 +437,7 @@ export default function AnalyzePage() {
         );
       }
     } finally {
+      clearWakeUpNotice();
       setIsAnalyzing(false);
     }
   };
@@ -573,6 +610,12 @@ export default function AnalyzePage() {
                   ? "Analyzing Resume..."
                   : "Generate Insights"}
             </button>
+            {showWakeUpNotice && isAnalyzing && (
+              <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                Waking up the model... this can take a 30 sec or more on first
+                request.
+              </p>
+            )}
 
             <button
               type="button"

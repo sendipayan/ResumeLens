@@ -15,9 +15,61 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
 export const metadata: Metadata = {
-  title: "Resumelens",
-  description: "Analyze your skills. Discover your future.",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "Resumelens",
+    template: "%s | Resumelens",
+  },
+  description: "Analyze your resume, uncover skill gaps, and improve ATS fit.",
+  applicationName: "Resumelens",
+  keywords: [
+    "resume analysis",
+    "ATS check",
+    "job description match",
+    "resume scoring",
+    "career tools",
+  ],
+  authors: [{ name: "Resumelens" }],
+  creator: "Resumelens",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: "Resumelens",
+    title: "Resumelens",
+    description: "Analyze your resume, uncover skill gaps, and improve ATS fit.",
+    images: [
+      {
+        url: "/landing_page.png",
+        width: 1200,
+        height: 630,
+        alt: "Resumelens resume analysis preview",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Resumelens",
+    description: "Analyze your resume, uncover skill gaps, and improve ATS fit.",
+    images: ["/landing_page.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  category: "career",
 };
 
 export default function RootLayout({

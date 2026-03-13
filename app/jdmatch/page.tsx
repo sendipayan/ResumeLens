@@ -6,6 +6,7 @@ import {
   Dispatch,
   DragEvent,
   SetStateAction,
+  useEffect,
   useRef,
   useState,
 } from "react";
@@ -45,7 +46,8 @@ type NormalizedAchievement = {
   quant_bonus: number;
 };
 
-const JDMATCH_API_URL = "http://localhost:8000/jdmatch";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+const JDMATCH_API_URL = BACKEND_URL ? `${BACKEND_URL}/jdmatch` : "";
 type JDMatchErrorPayload = {
   detail?: string;
   error?: string;
@@ -160,14 +162,14 @@ export default function JDPage() {
   const [primarySkillDraft, setPrimarySkillDraft] = useState("");
   const [secondarySkillDraft, setSecondarySkillDraft] = useState("");
   const [jobDescription, setJobDescription] = useState("");
-  const [selectedRecommendationTitle, setSelectedRecommendationTitle] =
-    useState<string>("");
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isMatching, setIsMatching] = useState(false);
+  const [showWakeUpNotice, setShowWakeUpNotice] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [analyzedAt, setAnalyzedAt] = useState<string | null>(null);
   const activeUploadIdRef = useRef(0);
+  const wakeUpTimeoutRef = useRef<number | null>(null);
   const storedRecommendation = useRecommendationJobsStore(
     (state) => state.jdMatchRecommendation,
   );
@@ -180,6 +182,32 @@ export default function JDPage() {
   const setJDMatchMissingSections = useRecommendationJobsStore(
     (state) => state.setJDMatchMissingSections,
   );
+
+  useEffect(() => {
+    return () => {
+      if (wakeUpTimeoutRef.current) {
+        clearTimeout(wakeUpTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const scheduleWakeUpNotice = () => {
+    if (wakeUpTimeoutRef.current) {
+      clearTimeout(wakeUpTimeoutRef.current);
+    }
+    setShowWakeUpNotice(false);
+    wakeUpTimeoutRef.current = window.setTimeout(() => {
+      setShowWakeUpNotice(true);
+    }, 5000);
+  };
+
+  const clearWakeUpNotice = () => {
+    if (wakeUpTimeoutRef.current) {
+      clearTimeout(wakeUpTimeoutRef.current);
+      wakeUpTimeoutRef.current = null;
+    }
+    setShowWakeUpNotice(false);
+  };
 
   const handleNewFile = async (file: File | null) => {
     if (!file) return;
@@ -195,7 +223,6 @@ export default function JDPage() {
     setAnalyzedAt(null);
     setJDMatchRecommendation(null);
     setJDMatchMissingSections([]);
-    setSelectedRecommendationTitle("");
     setUploadedResume(null);
     setSelectedFile(file);
 
@@ -247,7 +274,6 @@ export default function JDPage() {
     setAnalyzedAt(null);
     setJDMatchRecommendation(null);
     setJDMatchMissingSections([]);
-    setSelectedRecommendationTitle("");
     setIsUploading(false);
     setIsDragging(false);
   };
@@ -312,12 +338,19 @@ export default function JDPage() {
       return;
     }
 
+    if (!JDMATCH_API_URL) {
+      setErrorMessage(
+        "Missing NEXT_PUBLIC_BACKEND_URL. Add it to .env and restart the dev server.",
+      );
+      return;
+    }
+
     setErrorMessage(null);
     setIsMatching(true);
     setAnalyzedAt(null);
     setJDMatchRecommendation(null);
     setJDMatchMissingSections([]);
-    setSelectedRecommendationTitle("");
+    scheduleWakeUpNotice();
 
     try {
       const response = await axios.post<{
@@ -340,7 +373,6 @@ export default function JDPage() {
       setJDMatchRecommendation(recommendation);
       setJDMatchMissingSections(missingSections);
       setAnalyzedAt(new Date().toLocaleTimeString());
-      setSelectedRecommendationTitle(recommendation.Title ?? "");
     } catch (error) {
       setJDMatchRecommendation(null);
       setJDMatchMissingSections([]);
@@ -365,6 +397,7 @@ export default function JDPage() {
         );
       }
     } finally {
+      clearWakeUpNotice();
       setIsMatching(false);
     }
   };
@@ -389,10 +422,6 @@ export default function JDPage() {
   const activeAchievement = normalizeAchievement(
     (activeRecommendation?.achievment ??
       activeRecommendation?.["achievement"]) as StoredAchievement,
-  );
-  const activeResponsibilities = toStringArray(
-    activeRecommendation?.Responsibilities ??
-      activeRecommendation?.["responsibilities"],
   );
   const activeMissingSections =
     jdMatchMissingSections.length > 0
@@ -745,6 +774,12 @@ export default function JDPage() {
                   ? "Matching Resume..."
                   : "Generate JD Match"}
             </button>
+            {showWakeUpNotice && isMatching && (
+              <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                Waking up the model... this can take a 30 sec or more on first
+                request.
+              </p>
+            )}
 
             {errorMessage && (
               <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">

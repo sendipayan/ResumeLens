@@ -1,7 +1,7 @@
 "use client";
 
 import axios from "axios";
-import { ChangeEvent, DragEvent, useRef, useState } from "react";
+import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
 import { uploadResumeWithCloudinary } from "@/app/actions/upload-resume";
 import { type UploadedResume } from "@/lib/resume-upload";
 import { type AtsResult, useAtsStore } from "@/lib/stores/ats-store";
@@ -14,7 +14,8 @@ type AtsResponse = {
   issues?: string[];
 };
 
-const ATS_API_URL = "http://localhost:8000/ats";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+const ATS_API_URL = BACKEND_URL ? `${BACKEND_URL}/ats` : "";
 type AtsErrorPayload = {
   detail?: string;
   error?: string;
@@ -100,12 +101,40 @@ export default function AtsPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showWakeUpNotice, setShowWakeUpNotice] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const activeUploadIdRef = useRef(0);
+  const wakeUpTimeoutRef = useRef<number | null>(null);
   const atsResult = useAtsStore((state) => state.atsResult);
   const analyzedAt = useAtsStore((state) => state.analyzedAt);
   const setAtsResult = useAtsStore((state) => state.setAtsResult);
   const clearAtsResult = useAtsStore((state) => state.clearAtsResult);
+
+  useEffect(() => {
+    return () => {
+      if (wakeUpTimeoutRef.current) {
+        clearTimeout(wakeUpTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const scheduleWakeUpNotice = () => {
+    if (wakeUpTimeoutRef.current) {
+      clearTimeout(wakeUpTimeoutRef.current);
+    }
+    setShowWakeUpNotice(false);
+    wakeUpTimeoutRef.current = window.setTimeout(() => {
+      setShowWakeUpNotice(true);
+    }, 5000);
+  };
+
+  const clearWakeUpNotice = () => {
+    if (wakeUpTimeoutRef.current) {
+      clearTimeout(wakeUpTimeoutRef.current);
+      wakeUpTimeoutRef.current = null;
+    }
+    setShowWakeUpNotice(false);
+  };
 
   const handleNewFile = async (file: File | null) => {
     if (!file) return;
@@ -187,10 +216,17 @@ export default function AtsPage() {
       setErrorMessage("Resume upload failed. Please upload the PDF again.");
       return;
     }
+    if (!ATS_API_URL) {
+      setErrorMessage(
+        "Missing NEXT_PUBLIC_BACKEND_URL. Add it to .env and restart the dev server.",
+      );
+      return;
+    }
 
     setErrorMessage(null);
     clearAtsResult();
     setIsAnalyzing(true);
+    scheduleWakeUpNotice();
 
     try {
       const response = await axios.post<AtsResponse>(ATS_API_URL, {
@@ -223,6 +259,7 @@ export default function AtsPage() {
         );
       }
     } finally {
+      clearWakeUpNotice();
       setIsAnalyzing(false);
     }
   };
@@ -335,6 +372,12 @@ export default function AtsPage() {
                   ? "Running ATS Check..."
                   : "Generate ATS Report"}
             </button>
+            {showWakeUpNotice && isAnalyzing && (
+              <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                Waking up the model... this can take a 30 sec or more on first
+                request.
+              </p>
+            )}
 
             {errorMessage && (
               <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">
