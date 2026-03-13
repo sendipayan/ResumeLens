@@ -76,8 +76,22 @@ const resumeDesignTips = [
   },
 ];
 
-const isPdf = (file: File) =>
-  file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+const isPdf = (file: File) => {
+  const name = file.name.toLowerCase();
+  if (name.endsWith(".pdf")) return true;
+
+  const type = file.type.toLowerCase();
+  const allowedTypes = new Set([
+    "application/pdf",
+    "application/x-pdf",
+    "application/acrobat",
+    "application/octet-stream",
+  ]);
+
+  if (!allowedTypes.has(type)) return false;
+  if (type === "application/octet-stream") return name.endsWith(".pdf");
+  return true;
+};
 
 const formatFileSize = (bytes: number) => {
   if (bytes < 5 * 1024) return `${bytes} B`;
@@ -316,7 +330,7 @@ export default function AtsPage() {
                 <input
                   id="ats-resume-upload"
                   type="file"
-                  accept="application/pdf,.pdf"
+                  accept="application/pdf,application/x-pdf,application/acrobat,application/octet-stream,.pdf"
                   className="sr-only"
                   onChange={handleFileChange}
                 />

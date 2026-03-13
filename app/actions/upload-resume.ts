@@ -38,8 +38,19 @@ export async function uploadResumeWithCloudinary(
     };
   }
 
+  const name = file.name.toLowerCase();
+  const type = file.type.toLowerCase();
+  const allowedTypes = new Set([
+    "application/pdf",
+    "application/x-pdf",
+    "application/acrobat",
+    "application/octet-stream",
+  ]);
+
   const isPdf =
-    file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    name.endsWith(".pdf") ||
+    (allowedTypes.has(type) &&
+      (type !== "application/octet-stream" || name.endsWith(".pdf")));
   if (!isPdf) {
     return { success: false, error: "Only PDF resumes are supported." };
   }
