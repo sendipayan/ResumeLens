@@ -162,8 +162,20 @@ const uploadResume = async (
   file: File,
   source: "analyze" | "ats" | "jdmatch",
 ) => {
+  let safeFile: File;
+  try {
+    const buf = await file.arrayBuffer(); // forces provider to deliver bytes
+    safeFile = new File([buf], file.name, {
+      type: file.type || "application/pdf",
+    });
+  } catch {
+    throw new Error(
+      "This file provider blocked access. Please download the PDF locally first.",
+    );
+  }
+
   const formData = new FormData();
-  formData.append("file", file);
+  formData.append("file", safeFile);
   formData.append("source", source);
 
   const response = await axios.postForm<UploadResumeActionResult>(
@@ -531,7 +543,7 @@ export default function JDPage() {
                 <input
                   id="jd-resume-upload"
                   type="file"
-                  accept="application/pdf,application/x-pdf,application/acrobat,application/octet-stream,.pdf"
+                  accept=".pdf"
                   className="sr-only"
                   onChange={handleFileChange}
                 />

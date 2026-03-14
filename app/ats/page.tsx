@@ -128,27 +128,34 @@ export default function AtsPage() {
     file: File,
     source: "analyze" | "ats" | "jdmatch",
   ) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("source", source);
+    let safeFile: File;
     try {
-      const response = await axios.postForm<UploadResumeActionResult>(
-        "/api/upload-resume",
-        formData,
+      const buf = await file.arrayBuffer(); // forces provider to deliver bytes
+      safeFile = new File([buf], file.name, {
+        type: file.type || "application/pdf",
+      });
+    } catch {
+      throw new Error(
+        "This file provider blocked access. Please download the PDF locally first.",
       );
-
-      if (!response.data.success) {
-        throw new Error(
-          response.data.error ?? "Failed to upload resume to Cloudinary.",
-        );
-      }
-
-      return response.data.upload;
-    } catch (err: any) {
-      setErrorMessage(err);
-      
     }
-    return null;
+
+    const formData = new FormData();
+    formData.append("file", safeFile);
+    formData.append("source", source);
+
+    const response = await axios.postForm<UploadResumeActionResult>(
+      "/api/upload-resume",
+      formData,
+    );
+
+    if (!response.data.success) {
+      throw new Error(
+        response.data.error ?? "Failed to upload resume to Cloudinary.",
+      );
+    }
+
+    return response.data.upload;
   };
 
   useEffect(() => {
