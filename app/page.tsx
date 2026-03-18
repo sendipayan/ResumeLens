@@ -1,6 +1,29 @@
 import Image from "next/image";
 import Link from "next/link";
 import CardSwap, { Card } from "@/components/CardSwap";
+import { sendEmail } from "@/lib/email";
+
+async function sendContactEmail(formData: FormData) {
+  "use server";
+
+  const to = String(formData.get("email") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  const subject = String(formData.get("subject") ?? "").trim();
+  const message = String(formData.get("message") ?? "").trim();
+
+  if (!to || !subject || !message) {
+    throw new Error("Missing required contact fields");
+  }
+
+  const text = [
+    `Name: ${name || "N/A"}`,
+    `Email: ${to}`,
+    "",
+    message,
+  ].join("\n");
+
+  await sendEmail({ to, subject, text });
+}
 
 export default function Home() {
   return (
@@ -190,9 +213,7 @@ export default function Home() {
             </div>
 
             <form
-              action="mailto:contact@resumelens.ai"
-              method="post"
-              encType="text/plain"
+              action={sendContactEmail}
               className="border border-border bg-background/70 p-4"
             >
               <p className="text-sm font-semibold text-foreground">Contact Us</p>
