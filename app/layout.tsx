@@ -20,11 +20,11 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Resumelens",
-    template: "%s | Resumelens",
+    default: "ResumeLens | AI Resume Analyzer & ATS Score Checker",
+    template: "%s | ResumeLens",
   },
-  description: "Analyze your resume, uncover skill gaps, and improve ATS fit.",
-  applicationName: "Resumelens",
+  description: "Analyze your resume with the ResumeLens AI Analyzer. Uncover skill gaps, check your exact ATS match score, and perfectly align your profile against job descriptions.",
+  applicationName: "ResumeLens",
   keywords: [
     "resume analysis",
     "ATS check",
@@ -40,9 +40,9 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: "/",
-    siteName: "Resumelens",
-    title: "Resumelens",
-    description: "Analyze your resume, uncover skill gaps, and improve ATS fit.",
+    siteName: "ResumeLens",
+    title: "ResumeLens | AI Resume Analyzer & ATS Score Checker",
+    description: "Analyze your resume with the ResumeLens AI Analyzer. Uncover skill gaps, check your exact ATS match score, and perfectly align your profile against job descriptions.",
     images: [
       {
         url: "/landing_page.png",
@@ -54,8 +54,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Resumelens",
-    description: "Analyze your resume, uncover skill gaps, and improve ATS fit.",
+    title: "ResumeLens | AI Resume Analyzer & ATS Score Checker",
+    description: "Analyze your resume with the ResumeLens AI Analyzer. Uncover skill gaps, check your exact ATS match score, and perfectly align your profile against job descriptions.",
     images: ["/landing_page.png"],
   },
   robots: {
@@ -80,8 +80,28 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "ResumeLens",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "description": "Analyze your resume with the ResumeLens AI Analyzer. Uncover skill gaps, check your exact ATS match score, and perfectly align your profile against job descriptions."
+  };
+
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

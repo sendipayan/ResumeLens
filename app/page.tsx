@@ -117,7 +117,7 @@ export default function Home() {
             delay={2500}
             pauseOnHover={true}
           >
-            <Card  className=" flex flex-col items-center justify-center text-foreground px-5 pt-3">
+            <Card className=" flex flex-col items-center justify-center text-foreground px-5 pt-3">
               <div className="w-full h-[10%] flex items-center justify-self-start border-b-2 border-foreground">
                 <h3 className="text-xl font-bold">AI Resume Analysis</h3>
               </div>
@@ -129,7 +129,7 @@ export default function Home() {
                   width={700}
                   className="h-full w-full object-fit block dark:hidden"
                 />
-                 <Image
+                <Image
                   src="/card1_dark.png"
                   alt="Resume analysis preview"
                   height={1200}
@@ -150,7 +150,7 @@ export default function Home() {
                   width={700}
                   className="h-full w-full object-fit block dark:hidden"
                 />
-                 <Image
+                <Image
                   src="/card2_dark.png"
                   alt="Resume analysis preview"
                   height={1200}
@@ -171,7 +171,7 @@ export default function Home() {
                   width={700}
                   className="h-full w-full object-fit block dark:hidden"
                 />
-                 <Image
+                <Image
                   src="/card3_dark.png"
                   alt="Resume analysis preview"
                   height={1200}
@@ -183,6 +183,33 @@ export default function Home() {
           </CardSwap>
         </div>
       </section>
+
+      {/* FAQ Section */}
+      <section className="relative z-10 mx-auto w-[86%] py-12 lg:py-16">
+        <div className="flex flex-col items-center justify-center mb-10 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground/60">FAQ</p>
+          <h2 className="mt-3 text-3xl font-bold leading-tight text-foreground sm:text-4xl">Common questions about ResumeLens</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+          <div className="border border-border bg-background/65 p-6 backdrop-blur-sm">
+            <h3 className="text-lg font-bold text-foreground">How do I improve my ATS score?</h3>
+            <p className="mt-2 text-sm text-foreground/80">To improve your Applicant Tracking System (ATS) score, make sure you use a simple, single-column resume format. Incorporate exact keywords from the job description naturally into your experience, and avoid complex graphics or tables that parsing bots can&apos;t read.</p>
+          </div>
+          <div className="border border-border bg-background/65 p-6 backdrop-blur-sm">
+            <h3 className="text-lg font-bold text-foreground">What does an AI Resume Checker look for?</h3>
+            <p className="mt-2 text-sm text-foreground/80">An AI Resume Checker evaluates your resume&apos;s structural integrity, semantic relevance to a target role, keyword density, and action-verb usage. It highlights missing skills that recruiters are actively searching for.</p>
+          </div>
+          <div className="border border-border bg-background/65 p-6 backdrop-blur-sm">
+            <h3 className="text-lg font-bold text-foreground">Is the resume analysis free to use?</h3>
+            <p className="mt-2 text-sm text-foreground/80">Yes, the basic ATS score check and semantic resume analysis features are completely free to use. You can instantly see where your profile falls short before submitting an application.</p>
+          </div>
+          <div className="border border-border bg-background/65 p-6 backdrop-blur-sm">
+            <h3 className="text-lg font-bold text-foreground">How accurate is the job matching algorithm?</h3>
+            <p className="mt-2 text-sm text-foreground/80">Our proprietary matching algorithm has a 94% match accuracy. It simulates how top-tier enterprise ATS systems score your resume against a specific JD, giving you a realistic indication of your interview chances.</p>
+          </div>
+        </div>
+      </section>
+
       <section className="relative z-10 mx-auto w-[86%] pb-12 pt-8 sm:pb-14 sm:pt-10 lg:pb-16">
         <div className="border border-border bg-background/65 p-6 backdrop-blur-sm sm:p-8">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground/60">
@@ -195,14 +222,14 @@ export default function Home() {
             Reach out and we will help you set up ResumeLens for your
             job-search or hiring workflow.
           </p>
- 
+
           <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="border border-border bg-background/70 p-4">
               <p className="text-xs uppercase tracking-[0.15em] text-foreground/60">
-                Email
+                Name
               </p>
               <p className="mt-2 text-lg font-semibold text-foreground">
-                contact@resumelens.ai
+                Resumelens
               </p>
               <p className="mt-4 text-xs uppercase tracking-[0.15em] text-foreground/60">
                 Response Time
