@@ -24,26 +24,26 @@ export default function Navbar() {
       mixBlendMode="screen"
     >
       <div className="flex w-full items-center justify-between px-4 py-2 sm:px-6">
-        <Link
-          href="/"
-          className="text-lg font-semibold tracking-wide text-gray-900 dark:text-gray-100"
-        >
-          Resumelens
-        </Link>
+          <Link
+            href="/"
+            className="text-lg font-semibold tracking-wide text-gray-900 dark:text-gray-100"
+          >
+            ResumeLens
+          </Link>
 
         <div className="hidden md:flex  items-center gap-3">
           <nav className="flex items-center gap-2 sm:gap-3">
-             <Link href="/ats" className={navLinkClass}>
-              ATS score
+            <Link href="/ats" className={navLinkClass}>
+              ATS Checker
             </Link>
             <Link href="/analyze" className={navLinkClass}>
-              Analyze
+              Resume Analyzer
             </Link>
             <Link href="/jdmatch" className={navLinkClass}>
-              JD matching
+              JD Match
             </Link>
             <Link href="/jobs" className={navLinkClass}>
-              Jobs
+              Job Matches
             </Link>
           </nav>
         </div>
@@ -92,28 +92,28 @@ export default function Navbar() {
                 className={mobileNavLinkClass}
                 onClick={() => setIsMenuOpen(false)}
               >
-                ATS score
+                ATS Checker
               </Link>
               <Link
                 href="/analyze"
                 className={mobileNavLinkClass}
                 onClick={() => setIsMenuOpen(false)}
               >
-                Analyze
+                Resume Analyzer
               </Link>
               <Link
                 href="/jdmatch"
                 className={mobileNavLinkClass}
                 onClick={() => setIsMenuOpen(false)}
               >
-                JD matching
+                JD Match
               </Link>
               <Link
                 href="/jobs"
                 className={mobileNavLinkClass}
                 onClick={() => setIsMenuOpen(false)}
               >
-                Jobs
+                Job Matches
               </Link>
             </nav>
             <div className="mt-3 flex justify-end">

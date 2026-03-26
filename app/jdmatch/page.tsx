@@ -10,6 +10,7 @@ import {
   useRef,
   useState,
 } from "react";
+import Link from "next/link";
 import { type UploadResumeActionResult, type UploadedResume } from "@/lib/resume-upload";
 import {
   type StoredAchievement,
@@ -18,6 +19,37 @@ import {
   type StoredSkillCoverage,
   useRecommendationJobsStore,
 } from "@/lib/stores/recommendation-jobs-store";
+
+const faqItems = [
+  {
+    question: "What is JD Match?",
+    answer:
+      "JD Match compares your resume to a specific job description and highlights skill gaps and overall fit.",
+  },
+  {
+    question: "Does JD Match use ATS checker signals?",
+    answer:
+      "Yes, it includes ATS-style keyword alignment and relevance signals to estimate fit.",
+  },
+  {
+    question: "What should I paste into the job description box?",
+    answer:
+      "Use the full job description or a trimmed version with the core responsibilities and requirements.",
+  },
+];
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqItems.map((item) => ({
+    "@type": "Question",
+    name: item.question,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: item.answer,
+    },
+  })),
+};
 
 type NormalizedSkillCoverage = {
   coverage_score: number;
@@ -504,14 +536,25 @@ export default function JDPage() {
       <section className="mx-auto w-[86%] pb-10 pt-24 lg:pb-16 lg:pt-28">
         <div className="p-6 sm:p-8">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground/60">
-            JD Match
+            JD Match with ATS Checker
           </p>
           <h1 className="mt-3 text-3xl font-bold leading-tight text-foreground sm:text-4xl lg:text-5xl">
-            Match your resume against a custom job description.
+            Match your resume against a job description with ATS insights.
           </h1>
           <p className="mt-4 max-w-3xl text-sm leading-relaxed text-foreground/80 sm:text-base">
-            Upload your resume, add job details, and get an instant fit score
-            with skill gap feedback.
+            Upload your resume, add job details, and get a fit score with resume
+            analyzer guidance and skill gap feedback.
+          </p>
+          <p className="mt-2 text-sm text-foreground/70 sm:text-base">
+            Want a quick scan first? Use the{" "}
+            <Link className="font-semibold text-foreground underline-offset-4 hover:underline" href="/ats">
+              ATS checker
+            </Link>{" "}
+            or run the full{" "}
+            <Link className="font-semibold text-foreground underline-offset-4 hover:underline" href="/analyze">
+              resume analyzer
+            </Link>
+            .
           </p>
         </div>
 
@@ -1153,6 +1196,28 @@ export default function JDPage() {
           </div>
         </div>
       </section>
+      <section className="relative z-10 mx-auto w-[86%] pb-12 lg:pb-16">
+        <div className="flex flex-col items-center justify-center mb-10 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground/60">
+            FAQ
+          </p>
+          <h2 className="mt-3 text-3xl font-bold leading-tight text-foreground sm:text-4xl">
+            JD Match and ATS checker questions
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          {faqItems.map((item) => (
+            <div key={item.question} className="border border-border bg-background/65 p-6 backdrop-blur-sm">
+              <h3 className="text-lg font-bold text-foreground">{item.question}</h3>
+              <p className="mt-2 text-sm text-foreground/80">{item.answer}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
     </main>
   );
 }

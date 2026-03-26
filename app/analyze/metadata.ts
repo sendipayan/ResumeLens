@@ -3,17 +3,24 @@ import type { Metadata } from "next";
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 export const metadata: Metadata = {
-  title: "Analyze Resume",
+  title: "Resume Analyzer & ATS Checker",
   description:
-    "Upload a resume to get role recommendations, skill coverage, and section-level scores.",
+    "Upload a resume to run our resume analyzer and ATS checker, then review skill coverage, role recommendations, and section-level scores.",
+  keywords: [
+    "resume analyzer",
+    "ATS checker",
+    "ATS resume checker",
+    "resume analysis",
+    "resume score",
+  ],
   alternates: {
     canonical: "/analyze",
   },
   openGraph: {
     url: "/analyze",
-    title: "Analyze Resume",
+    title: "Resume Analyzer & ATS Checker",
     description:
-      "Upload a resume to get role recommendations, skill coverage, and section-level scores.",
+      "Upload a resume to run our resume analyzer and ATS checker, then review skill coverage, role recommendations, and section-level scores.",
     images: [
       {
         url: "/landing_page.png",
@@ -24,9 +31,9 @@ export const metadata: Metadata = {
     ],
   },
   twitter: {
-    title: "Analyze Resume",
+    title: "Resume Analyzer & ATS Checker",
     description:
-      "Upload a resume to get role recommendations, skill coverage, and section-level scores.",
+      "Upload a resume to run our resume analyzer and ATS checker, then review skill coverage, role recommendations, and section-level scores.",
     images: ["/landing_page.png"],
   },
   metadataBase: new URL(siteUrl),

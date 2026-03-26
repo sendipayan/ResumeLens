@@ -20,20 +20,24 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "ResumeLens | AI Resume Analyzer & ATS Score Checker",
+    default: "ResumeLens | Resume Analyzer & ATS Checker",
     template: "%s | ResumeLens",
   },
-  description: "Analyze your resume with the ResumeLens AI Analyzer. Uncover skill gaps, check your exact ATS match score, and perfectly align your profile against job descriptions.",
+  description: "Use ResumeLens as a resume analyzer and ATS checker to score your resume, uncover skill gaps, and align your profile with job descriptions.",
   applicationName: "ResumeLens",
   keywords: [
+    "resume analyzer",
+    "ATS checker",
+    "ATS resume checker",
     "resume analysis",
     "ATS check",
     "job description match",
     "resume scoring",
+    "resume checker",
     "career tools",
   ],
-  authors: [{ name: "Resumelens" }],
-  creator: "Resumelens",
+  authors: [{ name: "ResumeLens" }],
+  creator: "ResumeLens",
   alternates: {
     canonical: "/",
   },
@@ -41,8 +45,8 @@ export const metadata: Metadata = {
     type: "website",
     url: "/",
     siteName: "ResumeLens",
-    title: "ResumeLens | AI Resume Analyzer & ATS Score Checker",
-    description: "Analyze your resume with the ResumeLens AI Analyzer. Uncover skill gaps, check your exact ATS match score, and perfectly align your profile against job descriptions.",
+    title: "ResumeLens | Resume Analyzer & ATS Checker",
+    description: "Use ResumeLens as a resume analyzer and ATS checker to score your resume, uncover skill gaps, and align your profile with job descriptions.",
     images: [
       {
         url: "/landing_page.png",
@@ -54,8 +58,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "ResumeLens | AI Resume Analyzer & ATS Score Checker",
-    description: "Analyze your resume with the ResumeLens AI Analyzer. Uncover skill gaps, check your exact ATS match score, and perfectly align your profile against job descriptions.",
+    title: "ResumeLens | Resume Analyzer & ATS Checker",
+    description: "Use ResumeLens as a resume analyzer and ATS checker to score your resume, uncover skill gaps, and align your profile with job descriptions.",
     images: ["/landing_page.png"],
   },
   robots: {
@@ -86,12 +90,19 @@ export default function RootLayout({
     "name": "ResumeLens",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Web",
+    "isAccessibleForFree": true,
+    "featureList": [
+      "Resume analyzer scoring",
+      "ATS checker compatibility insights",
+      "Job description match feedback",
+      "Role recommendations"
+    ],
     "offers": {
       "@type": "Offer",
       "price": "0",
       "priceCurrency": "USD"
     },
-    "description": "Analyze your resume with the ResumeLens AI Analyzer. Uncover skill gaps, check your exact ATS match score, and perfectly align your profile against job descriptions."
+    "description": "ResumeLens is a resume analyzer and ATS checker that scores your resume, uncovers skill gaps, and aligns your profile with job descriptions."
   };
 
   return (

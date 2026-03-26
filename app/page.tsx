@@ -3,6 +3,52 @@ import Link from "next/link";
 import CardSwap, { Card } from "@/components/CardSwap";
 import { sendEmail } from "@/lib/email";
 
+const faqItems = [
+  {
+    question: "What is a resume analyzer?",
+    answer:
+      "A resume analyzer evaluates structure, skills, keywords, and clarity to highlight gaps that can hurt ATS and recruiter performance.",
+  },
+  {
+    question: "How do I improve my ATS score?",
+    answer:
+      "Use a clean, single-column layout, mirror exact job-description keywords in your experience, and avoid graphics or tables that ATS tools cannot parse.",
+  },
+  {
+    question: "What does an AI Resume Checker look for?",
+    answer:
+      "It checks structural integrity, role relevance, keyword coverage, and action-verb usage to surface missing skills recruiters expect.",
+  },
+  {
+    question: "What is an ATS checker?",
+    answer:
+      "An ATS checker simulates how applicant tracking systems scan a resume, scoring keyword alignment, formatting, and role relevance.",
+  },
+  {
+    question: "Is the resume analysis free to use?",
+    answer:
+      "Yes, the basic ATS score check and semantic resume analysis features are free, so you can see gaps before applying.",
+  },
+  {
+    question: "How accurate is the job matching algorithm?",
+    answer:
+      "Our matching algorithm reports a 94% match accuracy by comparing your resume against role requirements and ATS-style scoring signals.",
+  },
+];
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqItems.map((item) => ({
+    "@type": "Question",
+    name: item.question,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: item.answer,
+    },
+  })),
+};
+
 async function sendContactEmail(formData: FormData) {
   "use server";
 
@@ -30,12 +76,27 @@ export default function Home() {
     <main className="relative w-full min-h-screen">
       <section className="relative z-10 mx-auto flex lg:flex-row flex-col min-h-0 lg:min-h-screen w-[86%] items-start lg:items-center pt-24 pb-8 lg:pt-28 lg:pb-16 gap-6 lg:gap-0 justify-start lg:justify-between">
         <div className="lg:w-[50%] w-full mb-4 lg:mb-0">
-          <h1 className="text-4xl font-bold  leading-tight text-foreground sm:text-5xl lg:text-6xl">
-            ResumeLens helps you turn resumes into interview-ready decisions.
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground/60">
+            Resume Analyzer & ATS Checker
+          </p>
+          <h1 className="mt-3 text-4xl font-bold leading-tight text-foreground sm:text-5xl lg:text-6xl">
+            ResumeLens is a resume analyzer and ATS checker for faster, smarter decisions.
           </h1>
           <p className="mt-6 text-base leading-relaxed text-foreground/80 sm:text-lg">
-            Analyze resume quality, match candidates against job descriptions,
-            and surface the strongest profiles faster with structured scoring.
+            Score resume quality, check ATS fit, match candidates against job
+            descriptions, and surface the strongest profiles with structured
+            insights.
+          </p>
+          <p className="mt-3 text-sm text-foreground/70 sm:text-base">
+            Prefer a fast scan? Use our{" "}
+            <Link className="font-semibold text-foreground underline-offset-4 hover:underline" href="/ats">
+              ATS checker
+            </Link>{" "}
+            or run the full{" "}
+            <Link className="font-semibold text-foreground underline-offset-4 hover:underline" href="/analyze">
+              resume analyzer
+            </Link>
+            .
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -67,22 +128,22 @@ export default function Home() {
           </div>
         </div>
         <div className="lg:w-[50%] w-full h-[42vh] sm:h-[52vh] lg:h-[75vh] flex items-center justify-center">
-          <Image
-            src="/hero-image-new.png"
-            alt="ResumeLens hero visual"
-            width={720}
-            height={720}
-            priority
-            className="h-full w-full  object-contain block dark:hidden"
-          />
-          <Image
-            src="/hero-image-dark-new.png"
-            alt="ResumeLens hero visual"
-            width={720}
-            height={720}
-            priority
-            className="h-full w-full  object-contain hidden dark:block"
-          />
+            <Image
+              src="/hero-image-new.png"
+              alt="Resume analyzer and ATS checker dashboard preview"
+              width={720}
+              height={720}
+              priority
+              className="h-full w-full  object-contain block dark:hidden"
+            />
+            <Image
+              src="/hero-image-dark-new.png"
+              alt="Resume analyzer and ATS checker dashboard preview"
+              width={720}
+              height={720}
+              priority
+              className="h-full w-full  object-contain hidden dark:block"
+            />
         </div>
       </section>
       <section className="relative z-10 mx-auto w-[86%] h-auto lg:h-screen min-h-0 lg:min-h-screen flex lg:flex-row flex-col items-start justify-start lg:justify-between gap-4 sm:gap-6 lg:gap-8 py-4 sm:py-6 lg:py-0">
@@ -90,22 +151,22 @@ export default function Home() {
           <div className="h-auto lg:h-full w-full bg-transparent p-6 sm:p-8 flex flex-col justify-center">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground/60">Core Features</p>
             <h2 className="mt-3 text-3xl font-bold leading-tight text-foreground sm:text-4xl">
-              From resume upload to better job decisions.
+              From resume upload to ATS-optimized decisions.
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-foreground/80 sm:text-base">
-              ResumeLens helps you evaluate profiles faster, map candidates to the right opportunities, and improve
-              match confidence with structured AI insights.
+              ResumeLens helps you evaluate profiles faster with a resume analyzer, validate ATS checker results, and
+              map candidates to the right opportunities with structured AI insights.
             </p>
             <ul className="mt-6 space-y-3 text-sm leading-relaxed text-foreground sm:text-base">
               <li className="border-l-2 border-foreground/40 pl-3">
-                <span className="font-semibold">AI Resume Analysis:</span> skills, experience level, and ATS fit.
+                <span className="font-semibold">Resume Analyzer:</span> skills, experience level, and ATS fit.
               </li>
               <li className="border-l-2 border-foreground/40 pl-3">
                 <span className="font-semibold">Smart Job Matching:</span> discover roles where your profile has high
                 success potential.
               </li>
               <li className="border-l-2 border-foreground/40 pl-3">
-                <span className="font-semibold">Resume vs Job Description:</span> check role alignment before applying.
+                <span className="font-semibold">ATS Checker vs Job Description:</span> verify role alignment before applying.
               </li>
             </ul>
           </div>
@@ -119,19 +180,19 @@ export default function Home() {
           >
             <Card className=" flex flex-col items-center justify-center text-foreground px-5 pt-3">
               <div className="w-full h-[10%] flex items-center justify-self-start border-b-2 border-foreground">
-                <h3 className="text-xl font-bold">AI Resume Analysis</h3>
+                <h3 className="text-xl font-bold">Resume Analyzer</h3>
               </div>
               <div className="relative w-full h-[90%] overflow-hidden pt-4 pb-2">
                 <Image
                   src="/card1.png"
-                  alt="Resume analysis preview"
+                  alt="Resume analyzer score preview"
                   height={1200}
                   width={700}
                   className="h-full w-full object-fit block dark:hidden"
                 />
                 <Image
                   src="/card1_dark.png"
-                  alt="Resume analysis preview"
+                  alt="Resume analyzer score preview"
                   height={1200}
                   width={700}
                   className="h-full w-full object-fit hidden dark:block"
@@ -145,14 +206,14 @@ export default function Home() {
               <div className="relative w-full h-[90%] overflow-hidden pt-4 pb-2">
                 <Image
                   src="/card2.png"
-                  alt="Resume analysis preview"
+                  alt="ATS checker job matching preview"
                   height={1200}
                   width={700}
                   className="h-full w-full object-fit block dark:hidden"
                 />
                 <Image
                   src="/card2_dark.png"
-                  alt="Resume analysis preview"
+                  alt="ATS checker job matching preview"
                   height={1200}
                   width={700}
                   className="h-full w-full object-fit hidden dark:block"
@@ -166,14 +227,14 @@ export default function Home() {
               <div className="relative w-full h-[90%] overflow-hidden pt-4 pb-2">
                 <Image
                   src="/card3.png"
-                  alt="Resume analysis preview"
+                  alt="Resume versus job description match preview"
                   height={1200}
                   width={700}
                   className="h-full w-full object-fit block dark:hidden"
                 />
                 <Image
                   src="/card3_dark.png"
-                  alt="Resume analysis preview"
+                  alt="Resume versus job description match preview"
                   height={1200}
                   width={700}
                   className="h-full w-full object-fit hidden dark:block"
@@ -191,24 +252,18 @@ export default function Home() {
           <h2 className="mt-3 text-3xl font-bold leading-tight text-foreground sm:text-4xl">Common questions about ResumeLens</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-          <div className="border border-border bg-background/65 p-6 backdrop-blur-sm">
-            <h3 className="text-lg font-bold text-foreground">How do I improve my ATS score?</h3>
-            <p className="mt-2 text-sm text-foreground/80">To improve your Applicant Tracking System (ATS) score, make sure you use a simple, single-column resume format. Incorporate exact keywords from the job description naturally into your experience, and avoid complex graphics or tables that parsing bots can&apos;t read.</p>
-          </div>
-          <div className="border border-border bg-background/65 p-6 backdrop-blur-sm">
-            <h3 className="text-lg font-bold text-foreground">What does an AI Resume Checker look for?</h3>
-            <p className="mt-2 text-sm text-foreground/80">An AI Resume Checker evaluates your resume&apos;s structural integrity, semantic relevance to a target role, keyword density, and action-verb usage. It highlights missing skills that recruiters are actively searching for.</p>
-          </div>
-          <div className="border border-border bg-background/65 p-6 backdrop-blur-sm">
-            <h3 className="text-lg font-bold text-foreground">Is the resume analysis free to use?</h3>
-            <p className="mt-2 text-sm text-foreground/80">Yes, the basic ATS score check and semantic resume analysis features are completely free to use. You can instantly see where your profile falls short before submitting an application.</p>
-          </div>
-          <div className="border border-border bg-background/65 p-6 backdrop-blur-sm">
-            <h3 className="text-lg font-bold text-foreground">How accurate is the job matching algorithm?</h3>
-            <p className="mt-2 text-sm text-foreground/80">Our proprietary matching algorithm has a 94% match accuracy. It simulates how top-tier enterprise ATS systems score your resume against a specific JD, giving you a realistic indication of your interview chances.</p>
-          </div>
+          {faqItems.map((item) => (
+            <div key={item.question} className="border border-border bg-background/65 p-6 backdrop-blur-sm">
+              <h3 className="text-lg font-bold text-foreground">{item.question}</h3>
+              <p className="mt-2 text-sm text-foreground/80">{item.answer}</p>
+            </div>
+          ))}
         </div>
       </section>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
 
       <section className="relative z-10 mx-auto w-[86%] pb-12 pt-8 sm:pb-14 sm:pt-10 lg:pb-16">
         <div className="border border-border bg-background/65 p-6 backdrop-blur-sm sm:p-8">

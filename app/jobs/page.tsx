@@ -3,6 +3,37 @@
 import Link from "next/link";
 import { useRecommendationJobsStore } from "@/lib/stores/recommendation-jobs-store";
 
+const faqItems = [
+  {
+    question: "How are job matches generated?",
+    answer:
+      "Matches come from your resume analyzer results and highlight roles with strong keyword alignment.",
+  },
+  {
+    question: "Do I need to run the ATS checker first?",
+    answer:
+      "You can, but running the full resume analyzer provides richer role recommendations for this page.",
+  },
+  {
+    question: "Are the job links updated automatically?",
+    answer:
+      "Links are based on optimized search queries so you can open the latest jobs on each platform.",
+  },
+];
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqItems.map((item) => ({
+    "@type": "Question",
+    name: item.question,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: item.answer,
+    },
+  })),
+};
+
 const formatPlatformLabel = (key: string) =>
   key
     .split("_")
@@ -21,14 +52,21 @@ export default function JobsPage() {
       <section className="mx-auto w-[86%] pb-10 pt-24 lg:pb-16 lg:pt-28">
         <div className=" p-6 sm:p-8">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground/60">
-            Jobs
+            ATS Checker Job Matches
           </p>
           <h1 className="mt-3 text-3xl font-bold leading-tight text-foreground sm:text-4xl lg:text-5xl">
-            Recommended job searches from your resume profile.
+            Job searches powered by your resume analyzer results.
           </h1>
           <p className="mt-4 max-w-3xl text-sm leading-relaxed text-foreground/80 sm:text-base">
-            Open jobs directly on your preferred platforms using optimized search
-            queries per role.
+            Open jobs directly on your preferred platforms using ATS checker
+            insights and optimized search queries per role.
+          </p>
+          <p className="mt-2 text-sm text-foreground/70 sm:text-base">
+            Generate matches by running the{" "}
+            <Link className="font-semibold text-foreground underline-offset-4 hover:underline" href="/analyze">
+              resume analyzer
+            </Link>
+            .
           </p>
           {hasJobs && storedRecommendations.length > 0 && (
             <p className="mt-2 text-xs text-foreground/65">
@@ -100,6 +138,28 @@ export default function JobsPage() {
           </div>
         )}
       </section>
+      <section className="relative z-10 mx-auto w-[86%] pb-12 lg:pb-16">
+        <div className="flex flex-col items-center justify-center mb-10 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground/60">
+            FAQ
+          </p>
+          <h2 className="mt-3 text-3xl font-bold leading-tight text-foreground sm:text-4xl">
+            Job matches from resume analyzer insights
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          {faqItems.map((item) => (
+            <div key={item.question} className="border border-border bg-background/65 p-6 backdrop-blur-sm">
+              <h3 className="text-lg font-bold text-foreground">{item.question}</h3>
+              <p className="mt-2 text-sm text-foreground/80">{item.answer}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
     </main>
   );
 }

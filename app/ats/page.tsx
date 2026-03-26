@@ -2,11 +2,43 @@
 
 import axios from "axios";
 import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
   type UploadResumeActionResult,
   type UploadedResume,
 } from "@/lib/resume-upload";
 import { type AtsResult, useAtsStore } from "@/lib/stores/ats-store";
+
+const faqItems = [
+  {
+    question: "What is an ATS checker?",
+    answer:
+      "An ATS checker simulates how applicant tracking systems scan a resume and scores keyword alignment, formatting, and relevance.",
+  },
+  {
+    question: "Will an ATS checker fix my resume?",
+    answer:
+      "It highlights issues and missing keywords, but you still need to edit your resume to improve the score.",
+  },
+  {
+    question: "How often should I run the ATS checker?",
+    answer:
+      "Run it whenever you tailor your resume to a new role so your keywords and formatting stay aligned.",
+  },
+];
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqItems.map((item) => ({
+    "@type": "Question",
+    name: item.question,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: item.answer,
+    },
+  })),
+};
 
 type AtsResponse = {
   ATS_score?: number;
@@ -322,14 +354,25 @@ export default function AtsPage() {
       <section className="mx-auto w-[86%] pb-10 pt-24 lg:pb-16 lg:pt-28">
         <div className="p-6 sm:p-8">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground/60">
-            ATS Resume Check
+            ATS Checker & Resume Analyzer
           </p>
           <h1 className="mt-3 text-3xl font-bold leading-tight text-foreground sm:text-4xl lg:text-5xl">
-            Upload your resume to get an ATS compatibility score.
+            Upload your resume to run our ATS checker and resume analyzer.
           </h1>
           <p className="mt-4 max-w-3xl text-sm leading-relaxed text-foreground/80 sm:text-base">
             See section-level scores, contact completeness, and formatting
             issues that could impact automated parsing.
+          </p>
+          <p className="mt-2 text-sm text-foreground/70 sm:text-base">
+            Want deeper insights? Run the{" "}
+            <Link className="font-semibold text-foreground underline-offset-4 hover:underline" href="/analyze">
+              resume analyzer
+            </Link>{" "}
+            or compare to a role in{" "}
+            <Link className="font-semibold text-foreground underline-offset-4 hover:underline" href="/jdmatch">
+              JD Match
+            </Link>
+            .
           </p>
         </div>
 
@@ -552,6 +595,28 @@ export default function AtsPage() {
           </div>
         </div>
       </section>
+      <section className="relative z-10 mx-auto w-[86%] pb-12 lg:pb-16">
+        <div className="flex flex-col items-center justify-center mb-10 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-foreground/60">
+            FAQ
+          </p>
+          <h2 className="mt-3 text-3xl font-bold leading-tight text-foreground sm:text-4xl">
+            ATS checker questions
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          {faqItems.map((item) => (
+            <div key={item.question} className="border border-border bg-background/65 p-6 backdrop-blur-sm">
+              <h3 className="text-lg font-bold text-foreground">{item.question}</h3>
+              <p className="mt-2 text-sm text-foreground/80">{item.answer}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
     </main>
   );
 }
